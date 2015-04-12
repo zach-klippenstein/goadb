@@ -8,6 +8,7 @@ import (
 // Sender sends messages to the server.
 type Sender interface {
 	SendMessage(msg []byte) error
+	NewSyncSender() SyncSender
 }
 
 type realSender struct {
@@ -31,15 +32,8 @@ func (s *realSender) SendMessage(msg []byte) error {
 	return writeFully(s.writer, []byte(lengthAndMsg))
 }
 
-func writeFully(w io.Writer, data []byte) error {
-	for len(data) > 0 {
-		n, err := w.Write(data)
-		if err != nil {
-			return err
-		}
-		data = data[n:]
-	}
-	return nil
+func (s *realSender) NewSyncSender() SyncSender {
+	return NewSyncSender(s.writer)
 }
 
 var _ Sender = &realSender{}

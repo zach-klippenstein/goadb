@@ -19,27 +19,27 @@ func ParseDeviceList(t *testing.T) {
 func TestParseDeviceShort(t *testing.T) {
 	dev, err := parseDeviceShort("192.168.56.101:5555	device\n")
 	assert.NoError(t, err)
-	assert.Equal(t, &Device{
+	assert.Equal(t, &DeviceInfo{
 		Serial: "192.168.56.101:5555"}, dev)
 }
 
 func TestParseDeviceLong(t *testing.T) {
 	dev, err := parseDeviceLong("SERIAL    device product:PRODUCT model:MODEL device:DEVICE\n")
 	assert.NoError(t, err)
-	assert.Equal(t, &Device{
-		Serial:  "SERIAL",
-		Product: "PRODUCT",
-		Model:   "MODEL",
-		Device:  "DEVICE"}, dev)
+	assert.Equal(t, &DeviceInfo{
+		Serial:     "SERIAL",
+		Product:    "PRODUCT",
+		Model:      "MODEL",
+		DeviceInfo: "DEVICE"}, dev)
 }
 
 func TestParseDeviceLongUsb(t *testing.T) {
 	dev, err := parseDeviceLong("SERIAL    device usb:1234 product:PRODUCT model:MODEL device:DEVICE \n")
 	assert.NoError(t, err)
-	assert.Equal(t, &Device{
-		Serial:  "SERIAL",
-		Product: "PRODUCT",
-		Model:   "MODEL",
-		Device:  "DEVICE",
-		Usb:     "1234"}, dev)
+	assert.Equal(t, &DeviceInfo{
+		Serial:     "SERIAL",
+		Product:    "PRODUCT",
+		Model:      "MODEL",
+		DeviceInfo: "DEVICE",
+		Usb:        "1234"}, dev)
 }

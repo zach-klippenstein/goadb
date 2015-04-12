@@ -1,3 +1,4 @@
+// A simple tool for sending raw messages to an adb server.
 package main
 
 import (
@@ -47,7 +48,7 @@ func readLine() string {
 }
 
 func doCommand(cmd string) error {
-	conn, err := wire.DialPort(*port)
+	conn, err := wire.NewDialer("", *port).Dial()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -6,41 +6,40 @@ import (
 	"strings"
 )
 
-// Device represents a connected Android device.
-type Device struct {
+type DeviceInfo struct {
 	// Always set.
 	Serial string
 
 	// Product, device, and model are not set in the short form.
-	Product string
-	Model   string
-	Device  string
+	Product    string
+	Model      string
+	DeviceInfo string
 
 	// Only set for devices connected via USB.
 	Usb string
 }
 
 // IsUsb returns true if the device is connected via USB.
-func (d *Device) IsUsb() bool {
+func (d *DeviceInfo) IsUsb() bool {
 	return d.Usb != ""
 }
 
-func newDevice(serial string, attrs map[string]string) (*Device, error) {
+func newDevice(serial string, attrs map[string]string) (*DeviceInfo, error) {
 	if serial == "" {
 		return nil, fmt.Errorf("device serial cannot be blank")
 	}
 
-	return &Device{
-		Serial:  serial,
-		Product: attrs["product"],
-		Model:   attrs["model"],
-		Device:  attrs["device"],
-		Usb:     attrs["usb"],
+	return &DeviceInfo{
+		Serial:     serial,
+		Product:    attrs["product"],
+		Model:      attrs["model"],
+		DeviceInfo: attrs["device"],
+		Usb:        attrs["usb"],
 	}, nil
 }
 
-func parseDeviceList(list string, lineParseFunc func(string) (*Device, error)) ([]*Device, error) {
-	var devices []*Device
+func parseDeviceList(list string, lineParseFunc func(string) (*DeviceInfo, error)) ([]*DeviceInfo, error) {
+	var devices []*DeviceInfo
 	scanner := bufio.NewScanner(strings.NewReader(list))
 
 	for scanner.Scan() {
@@ -57,7 +56,7 @@ func parseDeviceList(list string, lineParseFunc func(string) (*Device, error)) (
 	return devices, nil
 }
 
-func parseDeviceShort(line string) (*Device, error) {
+func parseDeviceShort(line string) (*DeviceInfo, error) {
 	fields := strings.Fields(line)
 	if len(fields) != 2 {
 		return nil, fmt.Errorf("malformed device line, expected 2 fields but found %d", len(fields))
@@ -66,7 +65,7 @@ func parseDeviceShort(line string) (*Device, error) {
 	return newDevice(fields[0], map[string]string{})
 }
 
-func parseDeviceLong(line string) (*Device, error) {
+func parseDeviceLong(line string) (*DeviceInfo, error) {
 	fields := strings.Fields(line)
 	if len(fields) < 5 {
 		return nil, fmt.Errorf("malformed device line, expected at least 5 fields but found %d", len(fields))

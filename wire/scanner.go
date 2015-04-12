@@ -3,6 +3,7 @@ package wire
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strconv"
 )
 
@@ -27,6 +28,8 @@ See Conn for more details.
 type Scanner interface {
 	ReadStatus() (StatusCode, error)
 	ReadMessage() ([]byte, error)
+	ReadUntilEof() ([]byte, error)
+	NewSyncScanner() SyncScanner
 }
 
 type realScanner struct {
@@ -73,6 +76,38 @@ func (s *realScanner) ReadMessage() ([]byte, error) {
 	return data, nil
 }
 
+func (s *realScanner) ReadUntilEof() ([]byte, error) {
+	return ioutil.ReadAll(s.reader)
+}
+
+func (s *realScanner) NewSyncScanner() SyncScanner {
+	return NewSyncScanner(s.reader)
+}
+
+// Reads the status, and if failure, reads the message and returns it as an error.
+// If the status is success, doesn't read the message.
+// req is just used to populate the AdbError, and can be nil.
+func ReadStatusFailureAsError(s Scanner, req []byte) error {
+	status, err := s.ReadStatus()
+	if err != nil {
+		return err
+	}
+
+	if !status.IsSuccess() {
+		msg, err := s.ReadMessage()
+		if err != nil {
+			return err
+		}
+
+		return &AdbError{
+			Request:   req,
+			ServerMsg: string(msg),
+		}
+	}
+
+	return nil
+}
+
 func (s *realScanner) readLength() (int, error) {
 	lengthHex := make([]byte, 4)
 	n, err := io.ReadFull(s.reader, lengthHex)
@@ -93,10 +128,6 @@ func (s *realScanner) readLength() (int, error) {
 	}
 
 	return int(length), nil
-}
-
-func incompleteMessage(description string, actual int, expected int) error {
-	return fmt.Errorf("incomplete %s: read %d bytes, expecting %d", description, actual, expected)
 }
 
 var _ Scanner = &realScanner{}

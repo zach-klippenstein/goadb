@@ -1,13 +1,18 @@
-/*
-The wire package implements the low-level part of the client/server wire protocol.
+package wire
 
-The protocol spec can be found at
-https://android.googlesource.com/platform/system/core/+/master/adb/OVERVIEW.TXT.
+const (
+	// The official implementation of adb imposes an undocumented 255-byte limit
+	// on messages.
+	MaxMessageLength = 255
+)
+
+/*
+Conn is a normal connection to an adb server.
 
 For most cases, usage looks something like:
 	conn := wire.Dial()
 	conn.SendMessage(data)
-	conn.ReadStatus() == "OKAY" || "FAIL"
+	conn.ReadStatus() == StatusSuccess || StatusFailure
 	conn.ReadMessage()
 	conn.Close()
 
@@ -18,52 +23,44 @@ it returns an io.EOF error.
 For most commands, the server will close the connection after sending the response.
 You should still always call Close() when you're done with the connection.
 */
-package wire
-
-import (
-	"fmt"
-	"io"
-	"net"
-)
-
-const (
-	// Default port the adb server listens on.
-	AdbPort = 5037
-
-	// The official implementation of adb imposes an undocumented 255-byte limit
-	// on messages.
-	MaxMessageLength = 255
-)
-
-// Conn is a connection to an adb server.
 type Conn struct {
 	Scanner
 	Sender
-	io.Closer
+	closer func() error
 }
 
-// Dial connects to the adb server on the default port, AdbPort.
-func Dial() (*Conn, error) {
-	return DialPort(AdbPort)
+func NewConn(scanner Scanner, sender Sender, closer func() error) *Conn {
+	return &Conn{scanner, sender, closer}
 }
 
-// Dial connects to the adb server on port.
-func DialPort(port int) (*Conn, error) {
-	return DialAddr(fmt.Sprintf("localhost:%d", port))
+// Close closes the underlying connection.
+func (c *Conn) Close() error {
+	if c.closer != nil {
+		return c.closer()
+	}
+	return nil
 }
 
-// Dial connects to the adb server at address.
-func DialAddr(address string) (*Conn, error) {
-	netConn, err := net.Dial("tcp", address)
-	if err != nil {
+// NewSyncConn returns connection that can operate in sync mode.
+// The connection must already have been switched (by sending the sync command
+// to a specific device), or the return connection will return an error.
+func (c *Conn) NewSyncConn() *SyncConn {
+	return &SyncConn{
+		SyncScanner: c.Scanner.NewSyncScanner(),
+		SyncSender:  c.Sender.NewSyncSender(),
+	}
+}
+
+// RoundTripSingleResponse sends a message to the server, and reads a single
+// message response. If the reponse has a failure status code, returns it as an error.
+func (conn *Conn) RoundTripSingleResponse(req []byte) (resp []byte, err error) {
+	if err = conn.SendMessage(req); err != nil {
 		return nil, err
 	}
 
-	return &Conn{
-		Scanner: NewScanner(netConn),
-		Sender:  NewSender(netConn),
-		Closer:  netConn,
-	}, nil
-}
+	if err = ReadStatusFailureAsError(conn, req); err != nil {
+		return nil, err
+	}
 
-var _ io.Closer = &Conn{}
+	return conn.ReadMessage()
+}

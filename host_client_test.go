@@ -2,6 +2,7 @@ package goadb
 
 import (
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,27 +10,32 @@ import (
 )
 
 func TestGetServerVersion(t *testing.T) {
-	client := &HostClient{mockDialer(&MockServer{
+	s := &MockServer{
 		Status:   wire.StatusSuccess,
 		Messages: []string{"000a"},
-	})}
+	}
+	client := NewHostClientDialer(s)
 
 	v, err := client.GetServerVersion()
+	assert.Equal(t, "host:version", s.Requests[0])
 	assert.NoError(t, err)
 	assert.Equal(t, 10, v)
 }
 
-func mockDialer(s *MockServer) Dialer {
-	return func() (*wire.Conn, error) {
-		return &wire.Conn{s, s, s}, nil
-	}
-}
-
 type MockServer struct {
-	Status   wire.StatusCode
+	Status wire.StatusCode
+
+	// Messages are sent in order, each preceded by a length header.
 	Messages []string
 
+	// Each request is appended to this slice.
+	Requests []string
+
 	nextMsgIndex int
+}
+
+func (s *MockServer) Dial() (*wire.Conn, error) {
+	return wire.NewConn(s, s, s.Close), nil
 }
 
 func (s *MockServer) ReadStatus() (wire.StatusCode, error) {
@@ -45,7 +51,24 @@ func (s *MockServer) ReadMessage() ([]byte, error) {
 	return []byte(s.Messages[s.nextMsgIndex-1]), nil
 }
 
+func (s *MockServer) ReadUntilEof() ([]byte, error) {
+	var data []string
+	for ; s.nextMsgIndex < len(s.Messages); s.nextMsgIndex++ {
+		data = append(data, s.Messages[s.nextMsgIndex])
+	}
+	return []byte(strings.Join(data, "")), nil
+}
+
 func (s *MockServer) SendMessage(msg []byte) error {
+	s.Requests = append(s.Requests, string(msg))
+	return nil
+}
+
+func (s *MockServer) NewSyncScanner() wire.SyncScanner {
+	return nil
+}
+
+func (s *MockServer) NewSyncSender() wire.SyncSender {
 	return nil
 }
 
