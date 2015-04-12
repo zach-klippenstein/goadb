@@ -1,5 +1,5 @@
 /*
-Go interface to the Android Debug Bridge (adb).
+Package goadb is a Go interface to the Android Debug Bridge (adb).
 
 The client/server spec is defined at https://android.googlesource.com/platform/system/core/+/master/adb/OVERVIEW.TXT.
 
@@ -19,7 +19,7 @@ import (
 type Dialer func() (*wire.Conn, error)
 
 /*
-Interacts with host services on the adb server.
+HostClient interacts with host services on the adb server.
 
 Eg.
 	dialer := &HostClient{wire.Dial}
