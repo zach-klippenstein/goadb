@@ -28,6 +28,10 @@ func NewHostClient() *HostClient {
 	return NewHostClientDialer(nil)
 }
 
+func NewHostClientPort(port int) *HostClient {
+	return NewHostClientDialer(wire.NewDialer("", port))
+}
+
 func NewHostClientDialer(d wire.Dialer) *HostClient {
 	return &HostClient{nilSafeDialer{d}}
 }

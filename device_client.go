@@ -8,9 +8,7 @@ import (
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
-/*
-DeviceClient communicates with a specific Android device.
-*/
+// DeviceClient communicates with a specific Android device.
 type DeviceClient struct {
 	dialer     nilSafeDialer
 	descriptor *DeviceDescriptor

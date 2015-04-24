@@ -16,7 +16,7 @@ var port = flag.Int("p", wire.AdbPort, "")
 func main() {
 	flag.Parse()
 
-	client := adb.NewHostClientDialer(wire.NewDialer("", *port))
+	client := adb.NewHostClientPort(*port)
 	fmt.Println("Starting server…")
 	client.StartServer()
 

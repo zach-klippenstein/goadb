@@ -48,7 +48,6 @@ func (d *netDialer) Dial() (*Conn, error) {
 	conn := &Conn{
 		Scanner: NewScanner(netConn),
 		Sender:  NewSender(netConn),
-		closer:  netConn.Close,
 	}
 
 	// Prevent leaking the network connection, not sure if TCPConn does this itself.

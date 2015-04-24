@@ -21,7 +21,17 @@ func TestWriteEmptyMessage(t *testing.T) {
 	assert.Equal(t, "0000", b.String())
 }
 
-func NewTestSender() (Sender, *bytes.Buffer) {
-	var buf bytes.Buffer
-	return NewSender(&buf), &buf
+func NewTestSender() (Sender, *TestWriter) {
+	w := new(TestWriter)
+	return NewSender(w), w
+}
+
+// TestWriter is a wrapper around a bytes.Buffer that implements io.Closer.
+type TestWriter struct {
+	bytes.Buffer
+}
+
+func (b *TestWriter) Close() error {
+	// No-op.
+	return nil
 }

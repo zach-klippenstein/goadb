@@ -16,7 +16,7 @@ func TestReadNextChunk(t *testing.T) {
 	// Read 1st chunk
 	reader, err := readNextChunk(s)
 	assert.NoError(t, err)
-	assert.Equal(t, 6, reader.(*io.LimitedReader).N)
+	assert.Equal(t, int64(6), reader.(*io.LimitedReader).N)
 	buf := make([]byte, 10)
 	n, err := reader.Read(buf)
 	assert.NoError(t, err)
@@ -26,7 +26,7 @@ func TestReadNextChunk(t *testing.T) {
 	// Read 2nd chunk
 	reader, err = readNextChunk(s)
 	assert.NoError(t, err)
-	assert.Equal(t, 5, reader.(*io.LimitedReader).N)
+	assert.Equal(t, int64(5), reader.(*io.LimitedReader).N)
 	buf = make([]byte, 10)
 	n, err = reader.Read(buf)
 	assert.NoError(t, err)

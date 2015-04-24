@@ -26,19 +26,10 @@ You should still always call Close() when you're done with the connection.
 type Conn struct {
 	Scanner
 	Sender
-	closer func() error
 }
 
-func NewConn(scanner Scanner, sender Sender, closer func() error) *Conn {
-	return &Conn{scanner, sender, closer}
-}
-
-// Close closes the underlying connection.
-func (c *Conn) Close() error {
-	if c.closer != nil {
-		return c.closer()
-	}
-	return nil
+func NewConn(scanner Scanner, sender Sender) *Conn {
+	return &Conn{scanner, sender}
 }
 
 // NewSyncConn returns connection that can operate in sync mode.
@@ -63,4 +54,11 @@ func (conn *Conn) RoundTripSingleResponse(req []byte) (resp []byte, err error) {
 	}
 
 	return conn.ReadMessage()
+}
+
+func (conn *Conn) Close() error {
+	if err := conn.Sender.Close(); err != nil {
+		return err
+	}
+	return conn.Scanner.Close()
 }

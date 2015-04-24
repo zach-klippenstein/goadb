@@ -35,7 +35,7 @@ type MockServer struct {
 }
 
 func (s *MockServer) Dial() (*wire.Conn, error) {
-	return wire.NewConn(s, s, s.Close), nil
+	return wire.NewConn(s, s), nil
 }
 
 func (s *MockServer) ReadStatus() (wire.StatusCode, error) {

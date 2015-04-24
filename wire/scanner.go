@@ -29,14 +29,17 @@ type Scanner interface {
 	ReadStatus() (StatusCode, error)
 	ReadMessage() ([]byte, error)
 	ReadUntilEof() ([]byte, error)
+
 	NewSyncScanner() SyncScanner
+
+	Close() error
 }
 
 type realScanner struct {
-	reader io.Reader
+	reader io.ReadCloser
 }
 
-func NewScanner(r io.Reader) Scanner {
+func NewScanner(r io.ReadCloser) Scanner {
 	return &realScanner{r}
 }
 
@@ -106,6 +109,10 @@ func ReadStatusFailureAsError(s Scanner, req []byte) error {
 	}
 
 	return nil
+}
+
+func (s *realScanner) Close() error {
+	return s.reader.Close()
 }
 
 func (s *realScanner) readLength() (int, error) {

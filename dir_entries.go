@@ -2,9 +2,19 @@ package goadb
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/zach-klippenstein/goadb/wire"
 )
+
+// DirEntry holds information about a directory entry on a device.
+type DirEntry struct {
+	Name       string
+	Mode       os.FileMode
+	Size       int32
+	ModifiedAt time.Time
+}
 
 // DirEntries iterates over directory entries.
 type DirEntries struct {

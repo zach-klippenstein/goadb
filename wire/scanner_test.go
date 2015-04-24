@@ -89,8 +89,10 @@ func NewScannerString(str string) *realScanner {
 
 // NewEofBuffer returns a bytes.Buffer of str that returns an EOF error
 // at the end of input, instead of just returning 0 bytes read.
-func NewEofBuffer(str string) *bufio.Reader {
-	return bufio.NewReader(io.LimitReader(bytes.NewBufferString(str), int64(len(str))))
+func NewEofBuffer(str string) *TestReader {
+	limitReader := io.LimitReader(bytes.NewBufferString(str), int64(len(str)))
+	bufReader := bufio.NewReader(limitReader)
+	return &TestReader{bufReader}
 }
 
 func assertEof(t *testing.T, s *realScanner) {
@@ -103,4 +105,14 @@ func assertNotEof(t *testing.T, s *realScanner) {
 	n, err := s.reader.Read(make([]byte, 1))
 	assert.Equal(t, 1, n)
 	assert.NoError(t, err)
+}
+
+// TestReader is a wrapper around a bufio.Reader that implements io.Closer.
+type TestReader struct {
+	*bufio.Reader
+}
+
+func (b *TestReader) Close() error {
+	// No-op.
+	return nil
 }

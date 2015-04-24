@@ -4,23 +4,9 @@ package goadb
 import (
 	"fmt"
 	"io"
-	"os"
-	"time"
 
 	"github.com/zach-klippenstein/goadb/wire"
 )
-
-/*
-DirEntry holds information about a directory entry on a device.
-
-Unfortunately, adb doesn't seem to set the directory bit for directories.
-*/
-type DirEntry struct {
-	Name       string
-	Mode       os.FileMode
-	Size       int32
-	ModifiedAt time.Time
-}
 
 func stat(conn *wire.SyncConn, path string) (*DirEntry, error) {
 	if err := conn.SendOctetString("STAT"); err != nil {
