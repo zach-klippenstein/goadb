@@ -87,30 +87,6 @@ func (s *realScanner) NewSyncScanner() SyncScanner {
 	return NewSyncScanner(s.reader)
 }
 
-// Reads the status, and if failure, reads the message and returns it as an error.
-// If the status is success, doesn't read the message.
-// req is just used to populate the AdbError, and can be nil.
-func ReadStatusFailureAsError(s Scanner, req []byte) error {
-	status, err := s.ReadStatus()
-	if err != nil {
-		return err
-	}
-
-	if !status.IsSuccess() {
-		msg, err := s.ReadMessage()
-		if err != nil {
-			return err
-		}
-
-		return &AdbError{
-			Request:   req,
-			ServerMsg: string(msg),
-		}
-	}
-
-	return nil
-}
-
 func (s *realScanner) Close() error {
 	return s.reader.Close()
 }

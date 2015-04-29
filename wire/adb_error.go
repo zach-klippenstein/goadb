@@ -5,17 +5,17 @@ import (
 )
 
 type AdbError struct {
-	Request   []byte
+	Request   string
 	ServerMsg string
 }
 
 var _ error = &AdbError{}
 
 func (e *AdbError) Error() string {
-	if e.Request == nil {
+	if e.Request == "" {
 		return fmt.Sprintf("server error: %s", e.ServerMsg)
 	} else {
-		return fmt.Sprintf("server error for request '%s': %s", e.Request, e.ServerMsg)
+		return fmt.Sprintf("server error for %s request: %s", e.Request, e.ServerMsg)
 	}
 }
 

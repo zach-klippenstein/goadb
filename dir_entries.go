@@ -20,9 +20,6 @@ type DirEntry struct {
 type DirEntries struct {
 	scanner wire.SyncScanner
 
-	// Called when finished iterating (successfully or not).
-	doneHandler func()
-
 	currentEntry *DirEntry
 	err          error
 }
@@ -35,13 +32,13 @@ func (entries *DirEntries) Next() bool {
 	entry, done, err := readNextDirListEntry(entries.scanner)
 	if err != nil {
 		entries.err = err
-		entries.onDone()
+		entries.Close()
 		return false
 	}
 
 	entries.currentEntry = entry
 	if done {
-		entries.onDone()
+		entries.Close()
 		return false
 	}
 
@@ -56,10 +53,10 @@ func (entries *DirEntries) Err() error {
 	return entries.err
 }
 
-func (entries *DirEntries) onDone() {
-	if entries.doneHandler != nil {
-		entries.doneHandler()
-	}
+// Close closes the connection to the adb.
+// Next() will call Close() before returning false.
+func (entries *DirEntries) Close() error {
+	return entries.scanner.Close()
 }
 
 func readNextDirListEntry(s wire.SyncScanner) (entry *DirEntry, done bool, err error) {
@@ -72,28 +69,28 @@ func readNextDirListEntry(s wire.SyncScanner) (entry *DirEntry, done bool, err e
 		done = true
 		return
 	} else if id != "DENT" {
-		err = fmt.Errorf("expected dir entry ID 'DENT', but got '%s'", id)
+		err = fmt.Errorf("error reading dir entries: expected dir entry ID 'DENT', but got '%s'", id)
 		return
 	}
 
 	mode, err := s.ReadFileMode()
 	if err != nil {
-		err = fmt.Errorf("error reading file mode: %v", err)
+		err = fmt.Errorf("error reading dir entries: error reading file mode: %v", err)
 		return
 	}
 	size, err := s.ReadInt32()
 	if err != nil {
-		err = fmt.Errorf("error reading file size: %v", err)
+		err = fmt.Errorf("error reading dir entries: error reading file size: %v", err)
 		return
 	}
 	mtime, err := s.ReadTime()
 	if err != nil {
-		err = fmt.Errorf("error reading file time: %v", err)
+		err = fmt.Errorf("error reading dir entries: error reading file time: %v", err)
 		return
 	}
 	name, err := s.ReadString()
 	if err != nil {
-		err = fmt.Errorf("error reading file name: %v", err)
+		err = fmt.Errorf("error reading dir entries: error reading file name: %v", err)
 		return
 	}
 

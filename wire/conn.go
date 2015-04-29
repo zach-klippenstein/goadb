@@ -49,7 +49,7 @@ func (conn *Conn) RoundTripSingleResponse(req []byte) (resp []byte, err error) {
 		return nil, err
 	}
 
-	if err = ReadStatusFailureAsError(conn, req); err != nil {
+	if err = ReadStatusFailureAsError(conn, string(req)); err != nil {
 		return nil, err
 	}
 

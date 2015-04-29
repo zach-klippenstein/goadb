@@ -8,7 +8,7 @@ type nilSafeDialer struct {
 
 func (d nilSafeDialer) Dial() (*wire.Conn, error) {
 	if d.Dialer == nil {
-		d.Dialer = wire.NewDialer("", 0)
+		d.Dialer = wire.NewDialer("", AdbPort)
 	}
 
 	return d.Dialer.Dial()

@@ -6,11 +6,6 @@ import (
 	"runtime"
 )
 
-const (
-	// Default port the adb server listens on.
-	AdbPort = 5037
-)
-
 /*
 Dialer knows how to create connections to an adb server.
 */
@@ -35,12 +30,7 @@ func (d *netDialer) Dial() (*Conn, error) {
 		host = "localhost"
 	}
 
-	port := d.Port
-	if port == 0 {
-		port = AdbPort
-	}
-
-	netConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+	netConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, d.Port))
 	if err != nil {
 		return nil, err
 	}

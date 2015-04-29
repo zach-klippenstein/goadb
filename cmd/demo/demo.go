@@ -8,10 +8,9 @@ import (
 	"log"
 
 	adb "github.com/zach-klippenstein/goadb"
-	"github.com/zach-klippenstein/goadb/wire"
 )
 
-var port = flag.Int("p", wire.AdbPort, "")
+var port = flag.Int("p", goadb.AdbPort, "")
 
 func main() {
 	flag.Parse()

@@ -72,7 +72,7 @@ func (c *DeviceClient) RunCommand(cmd string, args ...string) (string, error) {
 	if err = conn.SendMessage([]byte(req)); err != nil {
 		return "", err
 	}
-	if err = wire.ReadStatusFailureAsError(conn, []byte(req)); err != nil {
+	if err = wire.ReadStatusFailureAsError(conn, req); err != nil {
 		return "", err
 	}
 
@@ -147,16 +147,16 @@ func (c *DeviceClient) getAttribute(attr string) (string, error) {
 func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
 	conn, err := c.dialer.Dial()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error dialing adb server: %+v", err)
 	}
 
 	req := fmt.Sprintf("host:%s", c.descriptor.getTransportDescriptor())
 	if err = wire.SendMessageString(conn, req); err != nil {
 		conn.Close()
-		return nil, err
+		return nil, fmt.Errorf("error connecting to device '%s': %+v", c.descriptor, err)
 	}
 
-	if err = wire.ReadStatusFailureAsError(conn, []byte(req)); err != nil {
+	if err = wire.ReadStatusFailureAsError(conn, req); err != nil {
 		conn.Close()
 		return nil, err
 	}
@@ -167,14 +167,14 @@ func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
 func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
 	conn, err := c.dialDevice()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error connecting to device for sync: %+v", err)
 	}
 
 	// Switch the connection to sync mode.
 	if err := wire.SendMessageString(conn, "sync:"); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error requesting sync mode: %+v", err)
 	}
-	if err := wire.ReadStatusFailureAsError(conn, []byte("sync")); err != nil {
+	if err := wire.ReadStatusFailureAsError(conn, "sync"); err != nil {
 		return nil, err
 	}
 

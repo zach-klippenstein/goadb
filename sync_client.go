@@ -35,10 +35,7 @@ func listDirEntries(conn *wire.SyncConn, path string) (entries *DirEntries, err 
 		return
 	}
 
-	return &DirEntries{
-		scanner:     conn,
-		doneHandler: func() { conn.Close() },
-	}, nil
+	return &DirEntries{scanner: conn}, nil
 }
 
 func receiveFile(conn *wire.SyncConn, path string) (io.ReadCloser, error) {

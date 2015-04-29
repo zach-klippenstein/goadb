@@ -8,6 +8,11 @@ import (
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
+const (
+	// Default port the adb server listens on.
+	AdbPort = 5037
+)
+
 /*
 HostClient communicates with host services on the adb server.
 
