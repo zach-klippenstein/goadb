@@ -4,9 +4,13 @@ package goadb
 import (
 	"fmt"
 	"io"
+	"os"
+	"time"
 
 	"github.com/zach-klippenstein/goadb/wire"
 )
+
+var zeroTime = time.Unix(0, 0).UTC()
 
 func stat(conn *wire.SyncConn, path string) (*DirEntry, error) {
 	if err := conn.SendOctetString("STAT"); err != nil {
@@ -64,6 +68,12 @@ func readStat(s wire.SyncScanner) (entry *DirEntry, err error) {
 	if err != nil {
 		err = fmt.Errorf("error reading file time: %v", err)
 		return
+	}
+
+	// adb doesn't indicate when a file doesn't exist, but will return all zeros.
+	// Theoretically this could be an actual file, but that's very unlikely.
+	if mode == os.FileMode(0) && size == 0 && mtime == zeroTime {
+		return nil, os.ErrNotExist
 	}
 
 	entry = &DirEntry{
