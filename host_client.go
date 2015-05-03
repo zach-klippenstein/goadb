@@ -2,6 +2,7 @@
 package goadb
 
 import (
+	"errors"
 	"os/exec"
 	"strconv"
 
@@ -26,19 +27,22 @@ See list of services at https://android.googlesource.com/platform/system/core/+/
 */
 // TODO(z): Finish implementing host services.
 type HostClient struct {
-	dialer nilSafeDialer
+	dialer wire.Dialer
 }
 
-func NewHostClient() *HostClient {
-	return NewHostClientDialer(nil)
+func NewHostClient() (*HostClient, error) {
+	return NewHostClientPort(AdbPort)
 }
 
-func NewHostClientPort(port int) *HostClient {
-	return NewHostClientDialer(wire.NewDialer("", port))
+func NewHostClientPort(port int) (*HostClient, error) {
+	return NewHostClientDialer(wire.NewDialer("localhost", port))
 }
 
-func NewHostClientDialer(d wire.Dialer) *HostClient {
-	return &HostClient{nilSafeDialer{d}}
+func NewHostClientDialer(d wire.Dialer) (*HostClient, error) {
+	if d == nil {
+		return nil, errors.New("dialer cannot be nil.")
+	}
+	return &HostClient{d}, nil
 }
 
 // GetServerVersion asks the ADB server for its internal version number.

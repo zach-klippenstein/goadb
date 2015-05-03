@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"runtime"
@@ -27,10 +28,15 @@ func NewDialer(host string, port int) Dialer {
 func (d *netDialer) Dial() (*Conn, error) {
 	host := d.Host
 	if host == "" {
-		host = "localhost"
+		return nil, errors.New("Must specify adb hostname (cannot be empty).")
 	}
 
-	netConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, d.Port))
+	port := d.Port
+	if port == 0 {
+		return nil, errors.New("Must specify port (cannot be 0).")
+	}
+
+	netConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return nil, err
 	}

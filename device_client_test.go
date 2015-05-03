@@ -12,7 +12,7 @@ func TestGetAttribute(t *testing.T) {
 		Status:   wire.StatusSuccess,
 		Messages: []string{"value"},
 	}
-	client := &DeviceClient{nilSafeDialer{s}, deviceWithSerial("serial")}
+	client := &DeviceClient{s, deviceWithSerial("serial")}
 
 	v, err := client.getAttribute("attr")
 	assert.Equal(t, "host-serial:serial:attr", s.Requests[0])
@@ -25,7 +25,7 @@ func TestRunCommandNoArgs(t *testing.T) {
 		Status:   wire.StatusSuccess,
 		Messages: []string{"output"},
 	}
-	client := &DeviceClient{nilSafeDialer{s}, anyDevice()}
+	client := &DeviceClient{s, anyDevice()}
 
 	v, err := client.RunCommand("cmd")
 	assert.Equal(t, "host:transport-any", s.Requests[0])

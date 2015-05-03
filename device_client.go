@@ -10,7 +10,7 @@ import (
 
 // DeviceClient communicates with a specific Android device.
 type DeviceClient struct {
-	dialer     nilSafeDialer
+	dialer     wire.Dialer
 	descriptor *DeviceDescriptor
 }
 

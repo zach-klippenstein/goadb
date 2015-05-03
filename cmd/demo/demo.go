@@ -10,12 +10,16 @@ import (
 	adb "github.com/zach-klippenstein/goadb"
 )
 
-var port = flag.Int("p", goadb.AdbPort, "")
+var port = flag.Int("p", adb.AdbPort, "")
 
 func main() {
 	flag.Parse()
 
-	client := adb.NewHostClientPort(*port)
+	client, err := adb.NewHostClientPort(*port)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Println("Starting server…")
 	client.StartServer()
 
@@ -98,6 +102,14 @@ func PrintDeviceInfo(device *adb.DeviceClient) error {
 		if entries.Err() != nil {
 			fmt.Println("\terror listing files:", err)
 		}
+	}
+
+	fmt.Println("\tnon-existent file:")
+	stat, err = device.Stat("/supercalifragilisticexpialidocious")
+	if err != nil {
+		fmt.Println("\terror:", err)
+	} else {
+		fmt.Printf("\tstat: %+v\n", stat)
 	}
 
 	fmt.Print("\tload avg: ")

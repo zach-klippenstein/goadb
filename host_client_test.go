@@ -14,7 +14,8 @@ func TestGetServerVersion(t *testing.T) {
 		Status:   wire.StatusSuccess,
 		Messages: []string{"000a"},
 	}
-	client := NewHostClientDialer(s)
+	client, err := NewHostClientDialer(s)
+	assert.NoError(t, err)
 
 	v, err := client.GetServerVersion()
 	assert.Equal(t, "host:version", s.Requests[0])
