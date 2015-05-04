@@ -27,7 +27,7 @@ func TestStatValid(t *testing.T) {
 	entry, err := stat(conn, "/thing")
 	assert.NoError(t, err)
 	assert.Equal(t, mode, entry.Mode, "expected os.FileMode %s, got %s", mode, entry.Mode)
-	assert.Equal(t, 4, entry.Size)
+	assert.Equal(t, int32(4), entry.Size)
 	assert.Equal(t, someTime, entry.ModifiedAt)
 	assert.Equal(t, "", entry.Name)
 }
