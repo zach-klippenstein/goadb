@@ -10,10 +10,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/zach-klippenstein/goadb"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
-var port = flag.Int("p", wire.AdbPort, "port the adb server is listening on")
+var port = flag.Int("p", goadb.AdbPort, "port the adb server is listening on")
 
 func main() {
 	flag.Parse()
