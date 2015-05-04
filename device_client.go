@@ -147,7 +147,7 @@ func (c *DeviceClient) getAttribute(attr string) (string, error) {
 func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
 	conn, err := c.dialer.Dial()
 	if err != nil {
-		return nil, fmt.Errorf("error dialing adb server: %+v", err)
+		return nil, fmt.Errorf("error dialing adb server (%s): %+v", c.dialer, err)
 	}
 
 	req := fmt.Sprintf("host:%s", c.descriptor.getTransportDescriptor())

@@ -23,6 +23,10 @@ func NewDialer(host string, port int) Dialer {
 	return &netDialer{host, port}
 }
 
+func (d *netDialer) String() string {
+	return fmt.Sprintf("netDialer(%s:%d)", d.Host, d.Port)
+}
+
 // Dial connects to the adb server on the host and port set on the netDialer.
 // The zero-value will connect to the default, localhost:5037.
 func (d *netDialer) Dial() (*Conn, error) {
