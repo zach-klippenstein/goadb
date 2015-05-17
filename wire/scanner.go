@@ -8,6 +8,8 @@ import (
 	"github.com/zach-klippenstein/goadb/util"
 )
 
+// TODO(zach): All EOF errors returned from networoking calls should use ConnectionResetError.
+
 // StatusCodes are returned by the server. If the code indicates failure, the
 // next message will be the error.
 type StatusCode string
@@ -70,7 +72,7 @@ func (s *realScanner) ReadMessage() ([]byte, error) {
 
 	length, err := s.readLength()
 	if err != nil {
-		return nil, util.WrapErrorf(err, util.NetworkError, "error reading message length")
+		return nil, err
 	}
 
 	data := make([]byte, length)
@@ -103,9 +105,7 @@ func (s *realScanner) Close() error {
 func (s *realScanner) readLength() (int, error) {
 	lengthHex := make([]byte, 4)
 	n, err := io.ReadFull(s.reader, lengthHex)
-	if err != nil && err != io.ErrUnexpectedEOF {
-		return 0, util.WrapErrorf(err, util.NetworkError, "error reading length")
-	} else if err == io.ErrUnexpectedEOF {
+	if err != nil {
 		return 0, errIncompleteMessage("length", n, 4)
 	}
 

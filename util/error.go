@@ -2,7 +2,19 @@ package util
 
 import "fmt"
 
-// Err is the implementation of error that all goadb functions return.
+/*
+Err is the implementation of error that all goadb functions return.
+
+Best Practice
+
+External errors should be wrapped using WrapErrorf, as soon as they are known about.
+
+Intermediate code should pass *Errs up until they will be returned outside the library.
+Errors should *not* be wrapped at every return site.
+
+Just before returning an *Err outside the library, it can be wrapped again, preserving the
+ErrCode (e.g. with WrapErrf).
+*/
 type Err struct {
 	// Code is the high-level "type" of error.
 	Code ErrCode
@@ -22,10 +34,12 @@ type ErrCode byte
 const (
 	AssertionError ErrCode = iota
 	ParseError     ErrCode = iota
-	// The server was not available on the request port and could not be started.
+	// The server was not available on the requested port.
 	ServerNotAvailable ErrCode = iota
 	// General network error communicating with the server.
 	NetworkError ErrCode = iota
+	// The connection to the server was reset in the middle of an operation. Server probably died.
+	ConnectionResetError ErrCode = iota
 	// The server returned an error message, but we couldn't parse it.
 	AdbError ErrCode = iota
 	// The server returned a "device not found" error.

@@ -60,7 +60,7 @@ func adbServerError(request string, serverMsg string) error {
 
 func errIncompleteMessage(description string, actual int, expected int) error {
 	return &util.Err{
-		Code:    util.NetworkError,
+		Code:    util.ConnectionResetError,
 		Message: fmt.Sprintf("incomplete %s: read %d bytes, expecting %d", description, actual, expected),
 		Details: struct {
 			ActualReadBytes int

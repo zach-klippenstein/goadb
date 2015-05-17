@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"time"
 
 	adb "github.com/zach-klippenstein/goadb"
+	"github.com/zach-klippenstein/goadb/util"
 )
 
 var port = flag.Int("p", adb.AdbPort, "")
@@ -47,8 +49,31 @@ func main() {
 		PrintDeviceInfoAndError(adb.DeviceWithSerial(serial))
 	}
 
+	fmt.Println()
+	fmt.Println("Watching for device state changes.")
+	watcher, err := adb.NewDeviceWatcher(adb.ClientConfig{})
+	for event := range watcher.C() {
+		fmt.Printf("\t[%s]%+v\n", time.Now(), event)
+	}
+	if watcher.Err() != nil {
+		printErr(watcher.Err())
+	}
+
 	//fmt.Println("Killing server…")
 	//client.KillServer()
+}
+
+func printErr(err error) {
+	switch err := err.(type) {
+	case *util.Err:
+		fmt.Println(err.Error())
+		if err.Cause != nil {
+			fmt.Print("caused by ")
+			printErr(err.Cause)
+		}
+	default:
+		fmt.Println("error:", err)
+	}
 }
 
 func PrintDeviceInfoAndError(descriptor adb.DeviceDescriptor) {

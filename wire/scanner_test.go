@@ -98,7 +98,7 @@ func NewEofBuffer(str string) *TestReader {
 
 func assertEof(t *testing.T, s *realScanner) {
 	msg, err := s.ReadMessage()
-	assert.True(t, util.HasErrCode(err, util.NetworkError))
+	assert.True(t, util.HasErrCode(err, util.ConnectionResetError))
 	assert.Nil(t, msg)
 }
 

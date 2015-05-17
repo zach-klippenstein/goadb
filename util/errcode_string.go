@@ -4,9 +4,9 @@ package util
 
 import "fmt"
 
-const _ErrCode_name = "AssertionErrorParseErrorServerNotAvailableNetworkErrorAdbErrorDeviceNotFoundFileNoExistError"
+const _ErrCode_name = "AssertionErrorParseErrorServerNotAvailableNetworkErrorConnectionResetErrorAdbErrorDeviceNotFoundFileNoExistError"
 
-var _ErrCode_index = [...]uint8{0, 14, 24, 42, 54, 62, 76, 92}
+var _ErrCode_index = [...]uint8{0, 14, 24, 42, 54, 74, 82, 96, 112}
 
 func (i ErrCode) String() string {
 	if i+1 >= ErrCode(len(_ErrCode_index)) {

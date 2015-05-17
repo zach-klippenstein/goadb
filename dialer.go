@@ -54,7 +54,7 @@ func (d *netDialer) Dial() (*wire.Conn, error) {
 	address := fmt.Sprintf("%s:%d", host, port)
 	netConn, err := net.Dial("tcp", address)
 	if err != nil {
-		return nil, util.WrapErrorf(err, util.NetworkError, "error dialing %s", address)
+		return nil, util.WrapErrorf(err, util.ServerNotAvailable, "error dialing %s", address)
 	}
 
 	conn := &wire.Conn{

@@ -20,7 +20,11 @@ For most cases, usage looks something like:
 
 For some messages, the server will return more than one message (but still a single
 status). Generally, after calling ReadStatus once, you should call ReadMessage until
-it returns an io.EOF error.
+it returns an io.EOF error. Note: the protocol docs seem to suggest that connections will be
+kept open for multiple commands, but this is not the case. The official client closes
+a connection immediately after its read the response, in most cases. The docs might be
+referring to the connection between the adb server and the device, but I haven't confirmed
+that.
 
 For most commands, the server will close the connection after sending the response.
 You should still always call Close() when you're done with the connection.
