@@ -4,14 +4,14 @@ import (
 	"fmt"
 )
 
-type AdbError struct {
+type AdbServerError struct {
 	Request   string
 	ServerMsg string
 }
 
-var _ error = &AdbError{}
+var _ error = &AdbServerError{}
 
-func (e *AdbError) Error() string {
+func (e *AdbServerError) Error() string {
 	if e.Request == "" {
 		return fmt.Sprintf("server error: %s", e.ServerMsg)
 	} else {

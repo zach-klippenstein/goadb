@@ -12,7 +12,12 @@ func TestGetAttribute(t *testing.T) {
 		Status:   wire.StatusSuccess,
 		Messages: []string{"value"},
 	}
-	client := &DeviceClient{s, deviceWithSerial("serial")}
+	client := NewDeviceClient(
+		ClientConfig{
+			Dialer: s,
+		},
+		DeviceWithSerial("serial"),
+	)
 
 	v, err := client.getAttribute("attr")
 	assert.Equal(t, "host-serial:serial:attr", s.Requests[0])
@@ -25,7 +30,12 @@ func TestRunCommandNoArgs(t *testing.T) {
 		Status:   wire.StatusSuccess,
 		Messages: []string{"output"},
 	}
-	client := &DeviceClient{s, anyDevice()}
+	client := NewDeviceClient(
+		ClientConfig{
+			Dialer: s,
+		},
+		AnyDevice(),
+	)
 
 	v, err := client.RunCommand("cmd")
 	assert.Equal(t, "host:transport-any", s.Requests[0])

@@ -10,8 +10,15 @@ import (
 
 // DeviceClient communicates with a specific Android device.
 type DeviceClient struct {
-	dialer     wire.Dialer
-	descriptor *DeviceDescriptor
+	config     ClientConfig
+	descriptor DeviceDescriptor
+}
+
+func NewDeviceClient(config ClientConfig, descriptor DeviceDescriptor) *DeviceClient {
+	return &DeviceClient{
+		config:     config.sanitized(),
+		descriptor: descriptor,
+	}
 }
 
 func (c *DeviceClient) String() string {
@@ -134,7 +141,7 @@ func (c *DeviceClient) OpenRead(path string) (io.ReadCloser, error) {
 // getAttribute returns the first message returned by the server by running
 // <host-prefix>:<attr>, where host-prefix is determined from the DeviceDescriptor.
 func (c *DeviceClient) getAttribute(attr string) (string, error) {
-	resp, err := wire.RoundTripSingleResponse(c.dialer,
+	resp, err := roundTripSingleResponse(c.config.Dialer,
 		fmt.Sprintf("%s:%s", c.descriptor.getHostPrefix(), attr))
 	if err != nil {
 		return "", err
@@ -145,9 +152,9 @@ func (c *DeviceClient) getAttribute(attr string) (string, error) {
 // dialDevice switches the connection to communicate directly with the device
 // by requesting the transport defined by the DeviceDescriptor.
 func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
-	conn, err := c.dialer.Dial()
+	conn, err := c.config.Dialer.Dial()
 	if err != nil {
-		return nil, fmt.Errorf("error dialing adb server (%s): %+v", c.dialer, err)
+		return nil, fmt.Errorf("error dialing adb server (%s): %+v", c.config.Dialer, err)
 	}
 
 	req := fmt.Sprintf("host:%s", c.descriptor.getTransportDescriptor())
@@ -197,7 +204,7 @@ func prepareCommandLine(cmd string, args ...string) (string, error) {
 		}
 	}
 
-	// Prepend the comand to the args array.
+	// Prepend the command to the args array.
 	if len(args) > 0 {
 		cmd = fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))
 	}

@@ -20,7 +20,7 @@ func ReadStatusFailureAsError(s Scanner, req string) error {
 			return fmt.Errorf("server returned error for %s, but couldn't read the error message: %+v", err)
 		}
 
-		return &AdbError{
+		return &AdbServerError{
 			Request:   req,
 			ServerMsg: string(msg),
 		}

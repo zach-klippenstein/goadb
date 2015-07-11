@@ -23,33 +23,33 @@ type DeviceDescriptor struct {
 	serial string
 }
 
-func anyDevice() *DeviceDescriptor {
-	return &DeviceDescriptor{descriptorType: DeviceAny}
+func AnyDevice() DeviceDescriptor {
+	return DeviceDescriptor{descriptorType: DeviceAny}
 }
 
-func anyUsbDevice() *DeviceDescriptor {
-	return &DeviceDescriptor{descriptorType: DeviceUsb}
+func AnyUsbDevice() DeviceDescriptor {
+	return DeviceDescriptor{descriptorType: DeviceUsb}
 }
 
-func anyLocalDevice() *DeviceDescriptor {
-	return &DeviceDescriptor{descriptorType: DeviceLocal}
+func AnyLocalDevice() DeviceDescriptor {
+	return DeviceDescriptor{descriptorType: DeviceLocal}
 }
 
-func deviceWithSerial(serial string) *DeviceDescriptor {
-	return &DeviceDescriptor{
+func DeviceWithSerial(serial string) DeviceDescriptor {
+	return DeviceDescriptor{
 		descriptorType: DeviceSerial,
 		serial:         serial,
 	}
 }
 
-func (d *DeviceDescriptor) String() string {
+func (d DeviceDescriptor) String() string {
 	if d.descriptorType == DeviceSerial {
 		return fmt.Sprintf("%s[%s]", d.descriptorType, d.serial)
 	}
 	return d.descriptorType.String()
 }
 
-func (d *DeviceDescriptor) getHostPrefix() string {
+func (d DeviceDescriptor) getHostPrefix() string {
 	switch d.descriptorType {
 	case DeviceAny:
 		return "host"
@@ -64,7 +64,7 @@ func (d *DeviceDescriptor) getHostPrefix() string {
 	}
 }
 
-func (d *DeviceDescriptor) getTransportDescriptor() string {
+func (d DeviceDescriptor) getTransportDescriptor() string {
 	switch d.descriptorType {
 	case DeviceAny:
 		return "transport-any"

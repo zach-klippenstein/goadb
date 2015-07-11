@@ -49,7 +49,7 @@ func readLine() string {
 }
 
 func doCommand(cmd string) error {
-	conn, err := wire.NewDialer("", *port).Dial()
+	conn, err := goadb.NewDialer("", *port).Dial()
 	if err != nil {
 		log.Fatal(err)
 	}

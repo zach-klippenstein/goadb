@@ -15,13 +15,10 @@ var port = flag.Int("p", adb.AdbPort, "")
 func main() {
 	flag.Parse()
 
-	client, err := adb.NewHostClientPort(*port)
-	if err != nil {
-		log.Fatal(err)
-	}
+	client := adb.NewHostClient(adb.ClientConfig{})
 
 	fmt.Println("Starting server…")
-	client.StartServer()
+	adb.StartServer()
 
 	serverVersion, err := client.GetServerVersion()
 	if err != nil {
@@ -38,23 +35,24 @@ func main() {
 		fmt.Printf("\t%+v\n", *device)
 	}
 
-	PrintDeviceInfoAndError(client.GetAnyDevice())
-	PrintDeviceInfoAndError(client.GetLocalDevice())
-	PrintDeviceInfoAndError(client.GetUsbDevice())
+	PrintDeviceInfoAndError(adb.AnyDevice())
+	PrintDeviceInfoAndError(adb.AnyLocalDevice())
+	PrintDeviceInfoAndError(adb.AnyUsbDevice())
 
 	serials, err := client.ListDeviceSerials()
 	if err != nil {
 		log.Fatal(err)
 	}
 	for _, serial := range serials {
-		PrintDeviceInfoAndError(client.GetDeviceWithSerial(serial))
+		PrintDeviceInfoAndError(adb.DeviceWithSerial(serial))
 	}
 
 	//fmt.Println("Killing server…")
 	//client.KillServer()
 }
 
-func PrintDeviceInfoAndError(device *adb.DeviceClient) {
+func PrintDeviceInfoAndError(descriptor adb.DeviceDescriptor) {
+	device := adb.NewDeviceClient(adb.ClientConfig{}, descriptor)
 	if err := PrintDeviceInfo(device); err != nil {
 		log.Println(err)
 	}
