@@ -1,8 +1,12 @@
 package goadb
 
-import "strings"
 import (
+	"fmt"
+	"reflect"
 	"regexp"
+	"strings"
+
+	"github.com/zach-klippenstein/goadb/util"
 )
 
 var (
@@ -15,4 +19,22 @@ func containsWhitespace(str string) bool {
 
 func isBlank(str string) bool {
 	return whitespaceRegex.MatchString(str)
+}
+
+func wrapClientError(err error, client interface{}, operation string, args ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+	if _, ok := err.(*util.Err); !ok {
+		panic("err is not a *util.Err")
+	}
+
+	clientType := reflect.TypeOf(client)
+
+	return &util.Err{
+		Code:    err.(*util.Err).Code,
+		Cause:   err,
+		Message: fmt.Sprintf("error performing %s on %s", fmt.Sprintf(operation, args...), clientType),
+		Details: client,
+	}
 }

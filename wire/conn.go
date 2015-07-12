@@ -1,5 +1,7 @@
 package wire
 
+import "github.com/zach-klippenstein/goadb/util"
+
 const (
 	// The official implementation of adb imposes an undocumented 255-byte limit
 	// on messages.
@@ -57,8 +59,20 @@ func (conn *Conn) RoundTripSingleResponse(req []byte) (resp []byte, err error) {
 }
 
 func (conn *Conn) Close() error {
-	if err := conn.Sender.Close(); err != nil {
-		return err
+	errs := struct {
+		SenderErr  error
+		ScannerErr error
+	}{
+		SenderErr:  conn.Sender.Close(),
+		ScannerErr: conn.Scanner.Close(),
 	}
-	return conn.Scanner.Close()
+
+	if errs.ScannerErr != nil || errs.SenderErr != nil {
+		return &util.Err{
+			Code:    util.NetworkError,
+			Message: "error closing connection",
+			Details: errs,
+		}
+	}
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -46,7 +47,7 @@ func (s *MockServer) ReadStatus() (wire.StatusCode, error) {
 
 func (s *MockServer) ReadMessage() ([]byte, error) {
 	if s.nextMsgIndex >= len(s.Messages) {
-		return nil, io.EOF
+		return nil, util.WrapErrorf(io.EOF, util.NetworkError, "")
 	}
 
 	s.nextMsgIndex++

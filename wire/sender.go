@@ -3,6 +3,8 @@ package wire
 import (
 	"fmt"
 	"io"
+
+	"github.com/zach-klippenstein/goadb/util"
 )
 
 // Sender sends messages to the server.
@@ -28,7 +30,7 @@ func SendMessageString(s Sender, msg string) error {
 
 func (s *realSender) SendMessage(msg []byte) error {
 	if len(msg) > MaxMessageLength {
-		return fmt.Errorf("message length exceeds maximum: %d", len(msg))
+		return util.AssertionErrorf("message length exceeds maximum: %d", len(msg))
 	}
 
 	lengthAndMsg := fmt.Sprintf("%04x%s", len(msg), msg)
@@ -40,7 +42,7 @@ func (s *realSender) NewSyncSender() SyncSender {
 }
 
 func (s *realSender) Close() error {
-	return s.writer.Close()
+	return util.WrapErrorf(s.writer.Close(), util.NetworkError, "error closing sender")
 }
 
 var _ Sender = &realSender{}

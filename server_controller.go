@@ -1,6 +1,10 @@
 package goadb
 
-import "os/exec"
+import (
+	"os/exec"
+
+	"github.com/zach-klippenstein/goadb/util"
+)
 
 /*
 StartServer ensures there is a server running.
@@ -10,5 +14,6 @@ Currently implemented by just running
 */
 func StartServer() error {
 	cmd := exec.Command("adb", "start-server")
-	return cmd.Run()
+	err := cmd.Run()
+	return util.WrapErrorf(err, util.ServerNotAvailable, "error starting server: %s", err)
 }

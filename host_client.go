@@ -4,6 +4,7 @@ package goadb
 import (
 	"strconv"
 
+	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -46,11 +47,14 @@ func NewHostClient(config ClientConfig) *HostClient {
 func (c *HostClient) GetServerVersion() (int, error) {
 	resp, err := roundTripSingleResponse(c.config.Dialer, "host:version")
 	if err != nil {
-		return 0, err
+		return 0, wrapClientError(err, c, "GetServerVersion")
 	}
 
-	version, err := strconv.ParseInt(string(resp), 16, 32)
-	return int(version), err
+	version, err := c.parseServerVersion(resp)
+	if err != nil {
+		return 0, wrapClientError(err, c, "GetServerVersion")
+	}
+	return version, nil
 }
 
 /*
@@ -62,12 +66,12 @@ Corresponds to the command:
 func (c *HostClient) KillServer() error {
 	conn, err := c.config.Dialer.Dial()
 	if err != nil {
-		return err
+		return wrapClientError(err, c, "KillServer")
 	}
 	defer conn.Close()
 
 	if err = wire.SendMessageString(conn, "host:kill"); err != nil {
-		return err
+		return wrapClientError(err, c, "KillServer")
 	}
 
 	return nil
@@ -82,12 +86,12 @@ Corresponds to the command:
 func (c *HostClient) ListDeviceSerials() ([]string, error) {
 	resp, err := roundTripSingleResponse(c.config.Dialer, "host:devices")
 	if err != nil {
-		return nil, err
+		return nil, wrapClientError(err, c, "ListDeviceSerials")
 	}
 
 	devices, err := parseDeviceList(string(resp), parseDeviceShort)
 	if err != nil {
-		return nil, err
+		return nil, wrapClientError(err, c, "ListDeviceSerials")
 	}
 
 	serials := make([]string, len(devices))
@@ -106,8 +110,22 @@ Corresponds to the command:
 func (c *HostClient) ListDevices() ([]*DeviceInfo, error) {
 	resp, err := roundTripSingleResponse(c.config.Dialer, "host:devices-l")
 	if err != nil {
-		return nil, err
+		return nil, wrapClientError(err, c, "ListDevices")
 	}
 
-	return parseDeviceList(string(resp), parseDeviceLong)
+	devices, err := parseDeviceList(string(resp), parseDeviceLong)
+	if err != nil {
+		return nil, wrapClientError(err, c, "ListDevices")
+	}
+	return devices, nil
+}
+
+func (c *HostClient) parseServerVersion(versionRaw []byte) (int, error) {
+	versionStr := string(versionRaw)
+	version, err := strconv.ParseInt(versionStr, 16, 32)
+	if err != nil {
+		return 0, util.WrapErrorf(err, util.ParseError,
+			"error parsing server version: %s", versionStr)
+	}
+	return int(version), nil
 }

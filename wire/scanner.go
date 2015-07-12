@@ -1,10 +1,11 @@
 package wire
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"strconv"
+
+	"github.com/zach-klippenstein/goadb/util"
 )
 
 // StatusCodes are returned by the server. If the code indicates failure, the
@@ -54,33 +55,41 @@ func ReadMessageString(s Scanner) (string, error) {
 func (s *realScanner) ReadStatus() (StatusCode, error) {
 	status := make([]byte, 4)
 	n, err := io.ReadFull(s.reader, status)
+
 	if err != nil && err != io.ErrUnexpectedEOF {
-		return "", err
+		return "", util.WrapErrorf(err, util.NetworkError, "error reading status")
 	} else if err == io.ErrUnexpectedEOF {
-		return StatusCode(status), incompleteMessage("status", n, 4)
+		return StatusCode(status), errIncompleteMessage("status", n, 4)
 	}
 
 	return StatusCode(status), nil
 }
 
 func (s *realScanner) ReadMessage() ([]byte, error) {
+	var err error
+
 	length, err := s.readLength()
 	if err != nil {
-		return nil, err
+		return nil, util.WrapErrorf(err, util.NetworkError, "error reading message length")
 	}
 
 	data := make([]byte, length)
 	n, err := io.ReadFull(s.reader, data)
+
 	if err != nil && err != io.ErrUnexpectedEOF {
-		return data, fmt.Errorf("error reading message data: %v", err)
+		return data, util.WrapErrorf(err, util.NetworkError, "error reading message data")
 	} else if err == io.ErrUnexpectedEOF {
-		return data, incompleteMessage("message data", n, length)
+		return data, errIncompleteMessage("message data", n, length)
 	}
 	return data, nil
 }
 
 func (s *realScanner) ReadUntilEof() ([]byte, error) {
-	return ioutil.ReadAll(s.reader)
+	data, err := ioutil.ReadAll(s.reader)
+	if err != nil {
+		return nil, util.WrapErrorf(err, util.NetworkError, "error reading until EOF")
+	}
+	return data, nil
 }
 
 func (s *realScanner) NewSyncScanner() SyncScanner {
@@ -88,21 +97,21 @@ func (s *realScanner) NewSyncScanner() SyncScanner {
 }
 
 func (s *realScanner) Close() error {
-	return s.reader.Close()
+	return util.WrapErrorf(s.reader.Close(), util.NetworkError, "error closing scanner")
 }
 
 func (s *realScanner) readLength() (int, error) {
 	lengthHex := make([]byte, 4)
 	n, err := io.ReadFull(s.reader, lengthHex)
 	if err != nil && err != io.ErrUnexpectedEOF {
-		return 0, err
+		return 0, util.WrapErrorf(err, util.NetworkError, "error reading length")
 	} else if err == io.ErrUnexpectedEOF {
-		return 0, incompleteMessage("length", n, 4)
+		return 0, errIncompleteMessage("length", n, 4)
 	}
 
 	length, err := strconv.ParseInt(string(lengthHex), 16, 64)
 	if err != nil {
-		return 0, fmt.Errorf("invalid hex length: %v", err)
+		return 0, util.WrapErrorf(err, util.NetworkError, "could not parse hex length %v", lengthHex)
 	}
 
 	// Clip the length to 255, as per the Google implementation.

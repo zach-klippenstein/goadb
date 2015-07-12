@@ -5,6 +5,7 @@ import (
 	"net"
 	"runtime"
 
+	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -50,9 +51,10 @@ func (d *netDialer) Dial() (*wire.Conn, error) {
 	host := d.Host
 	port := d.Port
 
-	netConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+	address := fmt.Sprintf("%s:%d", host, port)
+	netConn, err := net.Dial("tcp", address)
 	if err != nil {
-		return nil, err
+		return nil, util.WrapErrorf(err, util.NetworkError, "error dialing %s", address)
 	}
 
 	conn := &wire.Conn{
@@ -68,7 +70,6 @@ func (d *netDialer) Dial() (*wire.Conn, error) {
 	return conn, nil
 }
 
-// TODO(zach): Make this unexported.
 func roundTripSingleResponse(d Dialer, req string) ([]byte, error) {
 	conn, err := d.Dial()
 	if err != nil {

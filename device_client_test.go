@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -52,12 +53,14 @@ func TestPrepareCommandLineNoArgs(t *testing.T) {
 
 func TestPrepareCommandLineEmptyCommand(t *testing.T) {
 	_, err := prepareCommandLine("")
-	assert.EqualError(t, err, "command cannot be empty")
+	assert.Equal(t, util.AssertionError, code(err))
+	assert.Equal(t, "command cannot be empty", message(err))
 }
 
 func TestPrepareCommandLineBlankCommand(t *testing.T) {
 	_, err := prepareCommandLine("  ")
-	assert.EqualError(t, err, "command cannot be empty")
+	assert.Equal(t, util.AssertionError, code(err))
+	assert.Equal(t, "command cannot be empty", message(err))
 }
 
 func TestPrepareCommandLineCleanArgs(t *testing.T) {
@@ -74,5 +77,14 @@ func TestPrepareCommandLineArgWithWhitespaceQuotes(t *testing.T) {
 
 func TestPrepareCommandLineArgWithDoubleQuoteFails(t *testing.T) {
 	_, err := prepareCommandLine("cmd", "quoted\"arg")
-	assert.EqualError(t, err, "arg at index 0 contains an invalid double quote: quoted\"arg")
+	assert.Equal(t, util.ParseError, code(err))
+	assert.Equal(t, "arg at index 0 contains an invalid double quote: quoted\"arg", message(err))
+}
+
+func code(err error) util.ErrCode {
+	return err.(*util.Err).Code
+}
+
+func message(err error) string {
+	return err.(*util.Err).Message
 }

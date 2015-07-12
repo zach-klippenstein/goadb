@@ -2,8 +2,9 @@ package goadb
 
 import (
 	"bufio"
-	"fmt"
 	"strings"
+
+	"github.com/zach-klippenstein/goadb/util"
 )
 
 type DeviceInfo struct {
@@ -26,7 +27,7 @@ func (d *DeviceInfo) IsUsb() bool {
 
 func newDevice(serial string, attrs map[string]string) (*DeviceInfo, error) {
 	if serial == "" {
-		return nil, fmt.Errorf("device serial cannot be blank")
+		return nil, util.AssertionErrorf("device serial cannot be blank")
 	}
 
 	return &DeviceInfo{
@@ -49,9 +50,6 @@ func parseDeviceList(list string, lineParseFunc func(string) (*DeviceInfo, error
 		}
 		devices = append(devices, device)
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
 
 	return devices, nil
 }
@@ -59,7 +57,8 @@ func parseDeviceList(list string, lineParseFunc func(string) (*DeviceInfo, error
 func parseDeviceShort(line string) (*DeviceInfo, error) {
 	fields := strings.Fields(line)
 	if len(fields) != 2 {
-		return nil, fmt.Errorf("malformed device line, expected 2 fields but found %d", len(fields))
+		return nil, util.Errorf(util.ParseError,
+			"malformed device line, expected 2 fields but found %d", len(fields))
 	}
 
 	return newDevice(fields[0], map[string]string{})
@@ -68,7 +67,8 @@ func parseDeviceShort(line string) (*DeviceInfo, error) {
 func parseDeviceLong(line string) (*DeviceInfo, error) {
 	fields := strings.Fields(line)
 	if len(fields) < 5 {
-		return nil, fmt.Errorf("malformed device line, expected at least 5 fields but found %d", len(fields))
+		return nil, util.Errorf(util.ParseError,
+			"malformed device line, expected at least 5 fields but found %d", len(fields))
 	}
 
 	attrs := parseDeviceAttributes(fields[2:])

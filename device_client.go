@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -28,19 +29,23 @@ func (c *DeviceClient) String() string {
 // get-product is documented, but not implemented in the server.
 // TODO(z): Make getProduct exported if get-product is ever implemented in adb.
 func (c *DeviceClient) getProduct() (string, error) {
-	return c.getAttribute("get-product")
+	attr, err := c.getAttribute("get-product")
+	return attr, wrapClientError(err, c, "GetProduct")
 }
 
 func (c *DeviceClient) GetSerial() (string, error) {
-	return c.getAttribute("get-serialno")
+	attr, err := c.getAttribute("get-serialno")
+	return attr, wrapClientError(err, c, "GetSerial")
 }
 
 func (c *DeviceClient) GetDevicePath() (string, error) {
-	return c.getAttribute("get-devpath")
+	attr, err := c.getAttribute("get-devpath")
+	return attr, wrapClientError(err, c, "GetDevicePath")
 }
 
 func (c *DeviceClient) GetState() (string, error) {
-	return c.getAttribute("get-state")
+	attr, err := c.getAttribute("get-state")
+	return attr, wrapClientError(err, c, "GetState")
 }
 
 /*
@@ -62,12 +67,12 @@ contain double quotes.
 func (c *DeviceClient) RunCommand(cmd string, args ...string) (string, error) {
 	cmd, err := prepareCommandLine(cmd, args...)
 	if err != nil {
-		return "", err
+		return "", wrapClientError(err, c, "RunCommand")
 	}
 
 	conn, err := c.dialDevice()
 	if err != nil {
-		return "", err
+		return "", wrapClientError(err, c, "RunCommand")
 	}
 	defer conn.Close()
 
@@ -77,18 +82,14 @@ func (c *DeviceClient) RunCommand(cmd string, args ...string) (string, error) {
 	// We read until the stream is closed.
 	// So, we can't use conn.RoundTripSingleResponse.
 	if err = conn.SendMessage([]byte(req)); err != nil {
-		return "", err
+		return "", wrapClientError(err, c, "RunCommand")
 	}
 	if err = wire.ReadStatusFailureAsError(conn, req); err != nil {
-		return "", err
+		return "", wrapClientError(err, c, "RunCommand")
 	}
 
 	resp, err := conn.ReadUntilEof()
-	if err != nil {
-		return "", err
-	}
-
-	return string(resp), nil
+	return string(resp), wrapClientError(err, c, "RunCommand")
 }
 
 /*
@@ -103,39 +104,42 @@ Source: https://android.googlesource.com/platform/system/core/+/master/adb/SERVI
 func (c *DeviceClient) Remount() (string, error) {
 	conn, err := c.dialDevice()
 	if err != nil {
-		return "", err
+		return "", wrapClientError(err, c, "Remount")
 	}
 	defer conn.Close()
 
 	resp, err := conn.RoundTripSingleResponse([]byte("remount"))
-	return string(resp), err
+	return string(resp), wrapClientError(err, c, "Remount")
 }
 
 func (c *DeviceClient) ListDirEntries(path string) (*DirEntries, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
-		return nil, err
+		return nil, wrapClientError(err, c, "ListDirEntries(%s)", path)
 	}
 
-	return listDirEntries(conn, path)
+	entries, err := listDirEntries(conn, path)
+	return entries, wrapClientError(err, c, "ListDirEntries(%s)", path)
 }
 
 func (c *DeviceClient) Stat(path string) (*DirEntry, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
-		return nil, err
+		return nil, wrapClientError(err, c, "Stat(%s)", path)
 	}
 
-	return stat(conn, path)
+	entry, err := stat(conn, path)
+	return entry, wrapClientError(err, c, "Stat(%s)", path)
 }
 
 func (c *DeviceClient) OpenRead(path string) (io.ReadCloser, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
-		return nil, err
+		return nil, wrapClientError(err, c, "OpenRead(%s)", path)
 	}
 
-	return receiveFile(conn, path)
+	reader, err := receiveFile(conn, path)
+	return reader, wrapClientError(err, c, "OpenRead(%s)", path)
 }
 
 // getAttribute returns the first message returned by the server by running
@@ -149,18 +153,35 @@ func (c *DeviceClient) getAttribute(attr string) (string, error) {
 	return string(resp), nil
 }
 
+func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
+	conn, err := c.dialDevice()
+	if err != nil {
+		return nil, err
+	}
+
+	// Switch the connection to sync mode.
+	if err := wire.SendMessageString(conn, "sync:"); err != nil {
+		return nil, err
+	}
+	if err := wire.ReadStatusFailureAsError(conn, "sync"); err != nil {
+		return nil, err
+	}
+
+	return conn.NewSyncConn(), nil
+}
+
 // dialDevice switches the connection to communicate directly with the device
 // by requesting the transport defined by the DeviceDescriptor.
 func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
 	conn, err := c.config.Dialer.Dial()
 	if err != nil {
-		return nil, fmt.Errorf("error dialing adb server (%s): %+v", c.config.Dialer, err)
+		return nil, err
 	}
 
 	req := fmt.Sprintf("host:%s", c.descriptor.getTransportDescriptor())
 	if err = wire.SendMessageString(conn, req); err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("error connecting to device '%s': %+v", c.descriptor, err)
+		return nil, util.WrapErrf(err, "error connecting to device '%s'", c.descriptor)
 	}
 
 	if err = wire.ReadStatusFailureAsError(conn, req); err != nil {
@@ -171,33 +192,16 @@ func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
 	return conn, nil
 }
 
-func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
-	conn, err := c.dialDevice()
-	if err != nil {
-		return nil, fmt.Errorf("error connecting to device for sync: %+v", err)
-	}
-
-	// Switch the connection to sync mode.
-	if err := wire.SendMessageString(conn, "sync:"); err != nil {
-		return nil, fmt.Errorf("error requesting sync mode: %+v", err)
-	}
-	if err := wire.ReadStatusFailureAsError(conn, "sync"); err != nil {
-		return nil, err
-	}
-
-	return conn.NewSyncConn(), nil
-}
-
 // prepareCommandLine validates the command and argument strings, quotes
 // arguments if required, and joins them into a valid adb command string.
 func prepareCommandLine(cmd string, args ...string) (string, error) {
 	if isBlank(cmd) {
-		return "", fmt.Errorf("command cannot be empty")
+		return "", util.AssertionErrorf("command cannot be empty")
 	}
 
 	for i, arg := range args {
 		if strings.ContainsRune(arg, '"') {
-			return "", fmt.Errorf("arg at index %d contains an invalid double quote: %s", i, arg)
+			return "", util.Errorf(util.ParseError, "arg at index %d contains an invalid double quote: %s", i, arg)
 		}
 		if containsWhitespace(arg) {
 			args[i] = fmt.Sprintf("\"%s\"", arg)
