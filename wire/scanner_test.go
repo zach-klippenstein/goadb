@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/zach-klippenstein/goadb/util"
 )
 
 func TestReadStatusOkay(t *testing.T) {
@@ -20,7 +21,7 @@ func TestReadStatusOkay(t *testing.T) {
 func TestReadIncompleteStatus(t *testing.T) {
 	s := NewScannerString("oka")
 	_, err := s.ReadStatus()
-	assert.Equal(t, incompleteMessage("status", 3, 4), err)
+	assert.Equal(t, errIncompleteMessage("status", 3, 4), err)
 	assertEof(t, s)
 }
 
@@ -35,7 +36,7 @@ func TestReadLength(t *testing.T) {
 func TestReadIncompleteLength(t *testing.T) {
 	s := NewScannerString("aaa")
 	_, err := s.readLength()
-	assert.Equal(t, incompleteMessage("length", 3, 4), err)
+	assert.Equal(t, errIncompleteMessage("length", 3, 4), err)
 	assertEof(t, s)
 }
 
@@ -78,7 +79,7 @@ func TestReadIncompleteMessage(t *testing.T) {
 	s := NewScannerString("0005hel")
 	msg, err := ReadMessageString(s)
 	assert.Error(t, err)
-	assert.Equal(t, incompleteMessage("message data", 3, 5), err)
+	assert.Equal(t, errIncompleteMessage("message data", 3, 5), err)
 	assert.Equal(t, "hel\000\000", msg)
 	assertEof(t, s)
 }
@@ -97,7 +98,7 @@ func NewEofBuffer(str string) *TestReader {
 
 func assertEof(t *testing.T, s *realScanner) {
 	msg, err := s.ReadMessage()
-	assert.Equal(t, io.EOF, err)
+	assert.True(t, util.HasErrCode(err, util.NetworkError))
 	assert.Nil(t, msg)
 }
 

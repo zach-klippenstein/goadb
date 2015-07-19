@@ -94,3 +94,13 @@ func (err *Err) Error() string {
 	}
 	return msg
 }
+
+// HasErrCode returns true if err is an *Err and err.Code == code.
+func HasErrCode(err error, code ErrCode) bool {
+	switch err := err.(type) {
+	case *Err:
+		return err.Code == code
+	default:
+		return false
+	}
+}
