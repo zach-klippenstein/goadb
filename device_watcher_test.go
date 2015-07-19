@@ -2,6 +2,7 @@ package goadb
 
 import (
 	"log"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -165,10 +166,10 @@ func TestCalculateStateDiffsMultipleChangedMultipleUnchanged(t *testing.T) {
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
+	assert.True(t, reflect.DeepEqual([]DeviceStateChangedEvent{
 		DeviceStateChangedEvent{"1", "oldState", "newState"},
 		DeviceStateChangedEvent{"2", "oldState", "newState"},
-	}, diffs)
+	}, diffs))
 }
 
 func TestCalculateStateDiffsOneAddedOneRemovedOneChanged(t *testing.T) {
@@ -183,11 +184,11 @@ func TestCalculateStateDiffsOneAddedOneRemovedOneChanged(t *testing.T) {
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
+	assert.True(t, reflect.DeepEqual([]DeviceStateChangedEvent{
 		DeviceStateChangedEvent{"1", "oldState", "newState"},
 		DeviceStateChangedEvent{"2", "removed", ""},
 		DeviceStateChangedEvent{"3", "", "added"},
-	}, diffs)
+	}, diffs))
 }
 
 func TestPublishDevicesRestartsServer(t *testing.T) {
