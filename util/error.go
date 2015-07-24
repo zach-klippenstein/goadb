@@ -33,19 +33,19 @@ type ErrCode byte
 
 const (
 	AssertionError ErrCode = iota
-	ParseError     ErrCode = iota
+	ParseError
 	// The server was not available on the requested port.
-	ServerNotAvailable ErrCode = iota
+	ServerNotAvailable
 	// General network error communicating with the server.
-	NetworkError ErrCode = iota
+	NetworkError
 	// The connection to the server was reset in the middle of an operation. Server probably died.
-	ConnectionResetError ErrCode = iota
+	ConnectionResetError
 	// The server returned an error message, but we couldn't parse it.
-	AdbError ErrCode = iota
+	AdbError
 	// The server returned a "device not found" error.
-	DeviceNotFound ErrCode = iota
+	DeviceNotFound
 	// Tried to perform an operation on a path that doesn't exist on the device.
-	FileNoExistError ErrCode = iota
+	FileNoExistError
 )
 
 func Errorf(code ErrCode, format string, args ...interface{}) error {
