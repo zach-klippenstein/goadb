@@ -24,6 +24,20 @@ type DirEntries struct {
 	err          error
 }
 
+// ReadAllDirEntries reads all the remaining directory entries into a slice,
+// closes self, and returns any error.
+// If err is non-nil, result will contain any entries read until the error occurred.
+func (entries *DirEntries) ReadAll() (result []*DirEntry, err error) {
+	defer entries.Close()
+
+	for entries.Next() {
+		result = append(result, entries.Entry())
+	}
+	err = entries.Err()
+
+	return
+}
+
 func (entries *DirEntries) Next() bool {
 	if entries.err != nil {
 		return false
