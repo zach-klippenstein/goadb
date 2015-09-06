@@ -127,6 +127,7 @@ func (c *DeviceClient) Stat(path string) (*DirEntry, error) {
 	if err != nil {
 		return nil, wrapClientError(err, c, "Stat(%s)", path)
 	}
+	defer conn.Close()
 
 	entry, err := stat(conn, path)
 	return entry, wrapClientError(err, c, "Stat(%s)", path)
