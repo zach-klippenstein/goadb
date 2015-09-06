@@ -1,6 +1,9 @@
 package util
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 /*
 Err is the implementation of error that all goadb functions return.
@@ -117,4 +120,25 @@ func HasErrCode(err error, code ErrCode) bool {
 	default:
 		return false
 	}
+}
+
+/*
+ErrorWithCauseChain formats err and all its causes if it's an *Err, else returns
+err.Error().
+*/
+func ErrorWithCauseChain(err error) string {
+	var buffer bytes.Buffer
+
+	for {
+		if wrappedErr, ok := err.(*Err); ok && wrappedErr.Cause != nil {
+			fmt.Fprintln(&buffer, wrappedErr.Error())
+			fmt.Fprint(&buffer, "caused by ")
+			err = wrappedErr.Cause
+		} else {
+			break
+		}
+	}
+	buffer.WriteString(err.Error())
+
+	return buffer.String()
 }
