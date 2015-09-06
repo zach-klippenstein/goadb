@@ -14,7 +14,6 @@ Eg.
 	client := NewHostClient()
 	client.StartServer()
 	client.ListDevices()
-	client.GetAnyDevice() // see DeviceClient
 
 See list of services at https://android.googlesource.com/platform/system/core/+/master/adb/SERVICES.TXT.
 */
@@ -22,21 +21,6 @@ See list of services at https://android.googlesource.com/platform/system/core/+/
 type HostClient struct {
 	config ClientConfig
 }
-
-// func NewHostClient() (*HostClient, error) {
-// 	return NewHostClientPort(AdbPort)
-// }
-
-// func NewHostClientPort(port int) (*HostClient, error) {
-// 	return NewHostClientDialer(wire.NewDialer("localhost", port))
-// }
-
-// func NewHostClientDialer(d wire.Dialer) (*HostClient, error) {
-// 	if d == nil {
-// 		return nil, errors.New("dialer cannot be nil.")
-// 	}
-// 	return &HostClient{d}, nil
-// }
 
 func NewHostClient(config ClientConfig) *HostClient {
 	return &HostClient{config.sanitized()}

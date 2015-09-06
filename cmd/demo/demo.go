@@ -51,7 +51,7 @@ func main() {
 
 	fmt.Println()
 	fmt.Println("Watching for device state changes.")
-	watcher, err := adb.NewDeviceWatcher(adb.ClientConfig{})
+	watcher := adb.NewDeviceWatcher(adb.ClientConfig{})
 	for event := range watcher.C() {
 		fmt.Printf("\t[%s]%+v\n", time.Now(), event)
 	}

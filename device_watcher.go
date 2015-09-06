@@ -36,7 +36,7 @@ type deviceWatcherImpl struct {
 	startServer func() error
 }
 
-func NewDeviceWatcher(config ClientConfig) (*DeviceWatcher, error) {
+func NewDeviceWatcher(config ClientConfig) *DeviceWatcher {
 	watcher := &DeviceWatcher{&deviceWatcherImpl{
 		config:      config.sanitized(),
 		eventChan:   make(chan DeviceStateChangedEvent),
@@ -49,7 +49,7 @@ func NewDeviceWatcher(config ClientConfig) (*DeviceWatcher, error) {
 
 	go publishDevices(watcher.deviceWatcherImpl)
 
-	return watcher, nil
+	return watcher
 }
 
 /*
