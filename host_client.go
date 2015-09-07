@@ -11,8 +11,8 @@ import (
 HostClient communicates with host services on the adb server.
 
 Eg.
+	StartServer()
 	client := NewHostClient()
-	client.StartServer()
 	client.ListDevices()
 
 See list of services at https://android.googlesource.com/platform/system/core/+/master/adb/SERVICES.TXT.
