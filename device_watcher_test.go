@@ -2,7 +2,6 @@ package goadb
 
 import (
 	"log"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,27 +10,27 @@ import (
 )
 
 func TestParseDeviceStatesSingle(t *testing.T) {
-	states, err := parseDeviceStates(`192.168.56.101:5555	emulator-state
+	states, err := parseDeviceStates(`192.168.56.101:5555	offline
 `)
 
 	assert.NoError(t, err)
 	assert.Len(t, states, 1)
-	assert.Equal(t, "emulator-state", states["192.168.56.101:5555"])
+	assert.Equal(t, StateOffline, states["192.168.56.101:5555"])
 }
 
 func TestParseDeviceStatesMultiple(t *testing.T) {
-	states, err := parseDeviceStates(`192.168.56.101:5555	emulator-state
-0x0x0x0x	usb-state
+	states, err := parseDeviceStates(`192.168.56.101:5555	offline
+0x0x0x0x	device
 `)
 
 	assert.NoError(t, err)
 	assert.Len(t, states, 2)
-	assert.Equal(t, "emulator-state", states["192.168.56.101:5555"])
-	assert.Equal(t, "usb-state", states["0x0x0x0x"])
+	assert.Equal(t, StateOffline, states["192.168.56.101:5555"])
+	assert.Equal(t, StateOnline, states["0x0x0x0x"])
 }
 
 func TestParseDeviceStatesMalformed(t *testing.T) {
-	_, err := parseDeviceStates(`192.168.56.101:5555	emulator-state
+	_, err := parseDeviceStates(`192.168.56.101:5555	offline
 0x0x0x0x
 `)
 
@@ -40,8 +39,8 @@ func TestParseDeviceStatesMalformed(t *testing.T) {
 }
 
 func TestCalculateStateDiffsUnchangedEmpty(t *testing.T) {
-	oldStates := map[string]string{}
-	newStates := map[string]string{}
+	oldStates := map[string]DeviceState{}
+	newStates := map[string]DeviceState{}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
@@ -49,13 +48,13 @@ func TestCalculateStateDiffsUnchangedEmpty(t *testing.T) {
 }
 
 func TestCalculateStateDiffsUnchangedNonEmpty(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "device",
-		"2": "device",
+	oldStates := map[string]DeviceState{
+		"1": StateOnline,
+		"2": StateOnline,
 	}
-	newStates := map[string]string{
-		"1": "device",
-		"2": "device",
+	newStates := map[string]DeviceState{
+		"1": StateOnline,
+		"2": StateOnline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
@@ -64,131 +63,147 @@ func TestCalculateStateDiffsUnchangedNonEmpty(t *testing.T) {
 }
 
 func TestCalculateStateDiffsOneAdded(t *testing.T) {
-	oldStates := map[string]string{}
-	newStates := map[string]string{
-		"serial": "added",
+	oldStates := map[string]DeviceState{}
+	newStates := map[string]DeviceState{
+		"serial": StateOffline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"serial", "", "added"},
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"serial", StateDisconnected, StateOffline},
 	}, diffs)
 }
 
 func TestCalculateStateDiffsOneRemoved(t *testing.T) {
-	oldStates := map[string]string{
-		"serial": "removed",
+	oldStates := map[string]DeviceState{
+		"serial": StateOffline,
 	}
-	newStates := map[string]string{}
+	newStates := map[string]DeviceState{}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"serial", "removed", ""},
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"serial", StateOffline, StateDisconnected},
 	}, diffs)
 }
 
 func TestCalculateStateDiffsOneAddedOneUnchanged(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "device",
+	oldStates := map[string]DeviceState{
+		"1": StateOnline,
 	}
-	newStates := map[string]string{
-		"1": "device",
-		"2": "added",
+	newStates := map[string]DeviceState{
+		"1": StateOnline,
+		"2": StateOffline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"2", "", "added"},
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"2", StateDisconnected, StateOffline},
 	}, diffs)
 }
 
 func TestCalculateStateDiffsOneRemovedOneUnchanged(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "removed",
-		"2": "device",
+	oldStates := map[string]DeviceState{
+		"1": StateOffline,
+		"2": StateOnline,
 	}
-	newStates := map[string]string{
-		"2": "device",
+	newStates := map[string]DeviceState{
+		"2": StateOnline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"1", "removed", ""},
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"1", StateOffline, StateDisconnected},
 	}, diffs)
 }
 
 func TestCalculateStateDiffsOneAddedOneRemoved(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "removed",
+	oldStates := map[string]DeviceState{
+		"1": StateOffline,
 	}
-	newStates := map[string]string{
-		"2": "added",
+	newStates := map[string]DeviceState{
+		"2": StateOffline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"1", "removed", ""},
-		DeviceStateChangedEvent{"2", "", "added"},
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"1", StateOffline, StateDisconnected},
+		DeviceStateChangedEvent{"2", StateDisconnected, StateOffline},
 	}, diffs)
 }
 
 func TestCalculateStateDiffsOneChangedOneUnchanged(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "oldState",
-		"2": "device",
+	oldStates := map[string]DeviceState{
+		"1": StateOffline,
+		"2": StateOnline,
 	}
-	newStates := map[string]string{
-		"1": "newState",
-		"2": "device",
+	newStates := map[string]DeviceState{
+		"1": StateOnline,
+		"2": StateOnline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.Equal(t, []DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"1", "oldState", "newState"},
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"1", StateOffline, StateOnline},
 	}, diffs)
 }
 
-func TestCalculateStateDiffsMultipleChangedMultipleUnchanged(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "oldState",
-		"2": "oldState",
+func TestCalculateStateDiffsMultipleChanged(t *testing.T) {
+	oldStates := map[string]DeviceState{
+		"1": StateOffline,
+		"2": StateOnline,
 	}
-	newStates := map[string]string{
-		"1": "newState",
-		"2": "newState",
+	newStates := map[string]DeviceState{
+		"1": StateOnline,
+		"2": StateOffline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.True(t, reflect.DeepEqual([]DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"1", "oldState", "newState"},
-		DeviceStateChangedEvent{"2", "oldState", "newState"},
-	}, diffs))
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"1", StateOffline, StateOnline},
+		DeviceStateChangedEvent{"2", StateOnline, StateOffline},
+	}, diffs)
 }
 
 func TestCalculateStateDiffsOneAddedOneRemovedOneChanged(t *testing.T) {
-	oldStates := map[string]string{
-		"1": "oldState",
-		"2": "removed",
+	oldStates := map[string]DeviceState{
+		"1": StateOffline,
+		"2": StateOffline,
 	}
-	newStates := map[string]string{
-		"1": "newState",
-		"3": "added",
+	newStates := map[string]DeviceState{
+		"1": StateOnline,
+		"3": StateOffline,
 	}
 
 	diffs := calculateStateDiffs(oldStates, newStates)
 
-	assert.True(t, reflect.DeepEqual([]DeviceStateChangedEvent{
-		DeviceStateChangedEvent{"1", "oldState", "newState"},
-		DeviceStateChangedEvent{"2", "removed", ""},
-		DeviceStateChangedEvent{"3", "", "added"},
-	}, diffs))
+	assertContainsOnly(t, []DeviceStateChangedEvent{
+		DeviceStateChangedEvent{"1", StateOffline, StateOnline},
+		DeviceStateChangedEvent{"2", StateOffline, StateDisconnected},
+		DeviceStateChangedEvent{"3", StateDisconnected, StateOffline},
+	}, diffs)
+}
+
+func TestCameOnline(t *testing.T) {
+	assert.True(t, DeviceStateChangedEvent{"", StateDisconnected, StateOnline}.CameOnline())
+	assert.True(t, DeviceStateChangedEvent{"", StateOffline, StateOnline}.CameOnline())
+	assert.False(t, DeviceStateChangedEvent{"", StateOnline, StateOffline}.CameOnline())
+	assert.False(t, DeviceStateChangedEvent{"", StateOnline, StateDisconnected}.CameOnline())
+	assert.False(t, DeviceStateChangedEvent{"", StateOffline, StateDisconnected}.CameOnline())
+}
+
+func TestWentOffline(t *testing.T) {
+	assert.True(t, DeviceStateChangedEvent{"", StateOnline, StateDisconnected}.WentOffline())
+	assert.True(t, DeviceStateChangedEvent{"", StateOnline, StateOffline}.WentOffline())
+	assert.False(t, DeviceStateChangedEvent{"", StateOffline, StateOnline}.WentOffline())
+	assert.False(t, DeviceStateChangedEvent{"", StateDisconnected, StateOnline}.WentOffline())
+	assert.False(t, DeviceStateChangedEvent{"", StateOffline, StateDisconnected}.WentOffline())
 }
 
 func TestPublishDevicesRestartsServer(t *testing.T) {
@@ -230,4 +245,20 @@ func (s *MockServerStarter) StartServer() error {
 	} else {
 		return s.err
 	}
+}
+
+func assertContainsOnly(t *testing.T, expected, actual []DeviceStateChangedEvent) {
+	assert.Len(t, actual, len(expected))
+	for _, expectedEntry := range expected {
+		assertContains(t, expectedEntry, actual)
+	}
+}
+
+func assertContains(t *testing.T, expectedEntry DeviceStateChangedEvent, actual []DeviceStateChangedEvent) {
+	for _, actualEntry := range actual {
+		if expectedEntry == actualEntry {
+			return
+		}
+	}
+	assert.Fail(t, "expected to find %+v in %+v", expectedEntry, actual)
 }

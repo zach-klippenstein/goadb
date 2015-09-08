@@ -18,10 +18,42 @@ type DeviceWatcher struct {
 	*deviceWatcherImpl
 }
 
+// DeviceStateChangedEvent represents a device state transition.
 type DeviceStateChangedEvent struct {
 	Serial   string
-	OldState string
-	NewState string
+	OldState DeviceState
+	NewState DeviceState
+}
+
+// CameOnline returns true if this event represents a device coming online.
+func (s DeviceStateChangedEvent) CameOnline() bool {
+	return s.OldState != StateOnline && s.NewState == StateOnline
+}
+
+// WentOffline returns true if this event represents a device going offline.
+func (s DeviceStateChangedEvent) WentOffline() bool {
+	return s.OldState == StateOnline && s.NewState != StateOnline
+}
+
+// DeviceState represents one of the 3 possible states adb will report devices.
+// A device can be communicated with when it's in StateOnline.
+// A USB device will transition from StateDisconnected->StateOffline->StateOnline when
+// plugged in, and then StateOnline->StateDisconnected when unplugged.
+// If code doesn't care about specific states, DeviceStateChangedEvent provides methods
+// to query at a higher level.
+//go:generate stringer -type=DeviceState
+type DeviceState int8
+
+const (
+	StateDisconnected DeviceState = iota
+	StateOffline
+	StateOnline
+)
+
+var deviceStateStrings = map[string]DeviceState{
+	"":        StateDisconnected,
+	"offline": StateOffline,
+	"device":  StateOnline,
 }
 
 type deviceWatcherImpl struct {
@@ -96,7 +128,7 @@ and abort. If true, report no error and stop.
 func publishDevices(watcher *deviceWatcherImpl) {
 	defer close(watcher.eventChan)
 
-	var lastKnownStates map[string]string
+	var lastKnownStates map[string]DeviceState
 	finished := false
 
 	for {
@@ -148,7 +180,7 @@ func connectToTrackDevices(dialer Dialer) (wire.Scanner, error) {
 	return conn, nil
 }
 
-func publishDevicesUntilError(scanner wire.Scanner, eventChan chan<- DeviceStateChangedEvent, lastKnownStates *map[string]string) (finished bool, err error) {
+func publishDevicesUntilError(scanner wire.Scanner, eventChan chan<- DeviceStateChangedEvent, lastKnownStates *map[string]DeviceState) (finished bool, err error) {
 	for {
 		msg, err := scanner.ReadMessage()
 		if err != nil {
@@ -167,8 +199,8 @@ func publishDevicesUntilError(scanner wire.Scanner, eventChan chan<- DeviceState
 	}
 }
 
-func parseDeviceStates(msg string) (states map[string]string, err error) {
-	states = make(map[string]string)
+func parseDeviceStates(msg string) (states map[string]DeviceState, err error) {
+	states = make(map[string]DeviceState)
 
 	for lineNum, line := range strings.Split(msg, "\n") {
 		if len(line) == 0 {
@@ -181,14 +213,18 @@ func parseDeviceStates(msg string) (states map[string]string, err error) {
 			return
 		}
 
-		serial, state := fields[0], fields[1]
+		serial, stateString := fields[0], fields[1]
+		state, ok := deviceStateStrings[stateString]
+		if !ok {
+			err = util.Errorf(util.ParseError, "invalid device state: %s", state)
+		}
 		states[serial] = state
 	}
 
 	return
 }
 
-func calculateStateDiffs(oldStates, newStates map[string]string) (events []DeviceStateChangedEvent) {
+func calculateStateDiffs(oldStates, newStates map[string]DeviceState) (events []DeviceStateChangedEvent) {
 	for serial, oldState := range oldStates {
 		newState, ok := newStates[serial]
 
@@ -198,7 +234,7 @@ func calculateStateDiffs(oldStates, newStates map[string]string) (events []Devic
 				events = append(events, DeviceStateChangedEvent{serial, oldState, newState})
 			} else {
 				// Device only present in old list: device removed.
-				events = append(events, DeviceStateChangedEvent{serial, oldState, ""})
+				events = append(events, DeviceStateChangedEvent{serial, oldState, StateDisconnected})
 			}
 		}
 	}
@@ -206,7 +242,7 @@ func calculateStateDiffs(oldStates, newStates map[string]string) (events []Devic
 	for serial, newState := range newStates {
 		if _, ok := oldStates[serial]; !ok {
 			// Device only present in new list: device added.
-			events = append(events, DeviceStateChangedEvent{serial, "", newState})
+			events = append(events, DeviceStateChangedEvent{serial, StateDisconnected, newState})
 		}
 	}
 
