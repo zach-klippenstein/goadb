@@ -3,6 +3,7 @@ package wire
 import (
 	"fmt"
 	"io"
+	"regexp"
 
 	"github.com/zach-klippenstein/goadb/util"
 )
@@ -12,6 +13,13 @@ type ErrorResponseDetails struct {
 	Request   string
 	ServerMsg string
 }
+
+// deviceNotFoundMessagePattern matches all possible error messages returned by adb servers to
+// report that a matching device was not found. Used to set the util.DeviceNotFound error code on
+// error values.
+//
+// Old servers send "device not found", and newer ones "device 'serial' not found".
+var deviceNotFoundMessagePattern = regexp.MustCompile(`device( '.*')? not found`)
 
 // Reads the status, and if failure, reads the message and returns it as an error.
 // If the status is success, doesn't read the message.
@@ -44,7 +52,7 @@ func adbServerError(request string, serverMsg string) error {
 	}
 
 	errCode := util.AdbError
-	if serverMsg == "device not found" {
+	if deviceNotFoundMessagePattern.MatchString(serverMsg) {
 		errCode = util.DeviceNotFound
 	}
 
