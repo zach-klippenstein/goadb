@@ -26,6 +26,52 @@ func TestGetAttribute(t *testing.T) {
 	assert.Equal(t, "value", v)
 }
 
+func TestGetDeviceInfo(t *testing.T) {
+	deviceLister := func() ([]*DeviceInfo, error) {
+		return []*DeviceInfo{
+			&DeviceInfo{
+				Serial:  "abc",
+				Product: "Foo",
+			},
+			&DeviceInfo{
+				Serial:  "def",
+				Product: "Bar",
+			},
+		}, nil
+	}
+
+	client := newDeviceClientWithDeviceLister("abc", deviceLister)
+	device, err := client.GetDeviceInfo()
+	assert.NoError(t, err)
+	assert.Equal(t, "Foo", device.Product)
+
+	client = newDeviceClientWithDeviceLister("def", deviceLister)
+	device, err = client.GetDeviceInfo()
+	assert.NoError(t, err)
+	assert.Equal(t, "Bar", device.Product)
+
+	client = newDeviceClientWithDeviceLister("serial", deviceLister)
+	device, err = client.GetDeviceInfo()
+	assert.True(t, util.HasErrCode(err, util.DeviceNotFound))
+	assert.EqualError(t, err.(*util.Err).Cause,
+		"DeviceNotFound: device list doesn't contain serial serial")
+	assert.Nil(t, device)
+}
+
+func newDeviceClientWithDeviceLister(serial string, deviceLister func() ([]*DeviceInfo, error)) *DeviceClient {
+	client := NewDeviceClient(
+		ClientConfig{
+			Dialer: &MockServer{
+				Status:   wire.StatusSuccess,
+				Messages: []string{serial},
+			},
+		},
+		DeviceWithSerial(serial),
+	)
+	client.deviceListFunc = deviceLister
+	return client
+}
+
 func TestRunCommandNoArgs(t *testing.T) {
 	s := &MockServer{
 		Status:   wire.StatusSuccess,
