@@ -13,12 +13,16 @@ import (
 type DeviceClient struct {
 	config     ClientConfig
 	descriptor DeviceDescriptor
+
+	// Used to get device info.
+	deviceListFunc func() ([]*DeviceInfo, error)
 }
 
 func NewDeviceClient(config ClientConfig, descriptor DeviceDescriptor) *DeviceClient {
 	return &DeviceClient{
-		config:     config.sanitized(),
-		descriptor: descriptor,
+		config:         config.sanitized(),
+		descriptor:     descriptor,
+		deviceListFunc: NewHostClient(config).ListDevices,
 	}
 }
 
@@ -46,6 +50,30 @@ func (c *DeviceClient) GetDevicePath() (string, error) {
 func (c *DeviceClient) GetState() (string, error) {
 	attr, err := c.getAttribute("get-state")
 	return attr, wrapClientError(err, c, "GetState")
+}
+
+func (c *DeviceClient) GetDeviceInfo() (*DeviceInfo, error) {
+	// Adb doesn't actually provide a way to get this for an individual device,
+	// so we have to just list devices and find ourselves.
+
+	serial, err := c.GetSerial()
+	if err != nil {
+		return nil, wrapClientError(err, c, "GetDeviceInfo(GetSerial)")
+	}
+
+	devices, err := c.deviceListFunc()
+	if err != nil {
+		return nil, wrapClientError(err, c, "GetDeviceInfo(ListDevices)")
+	}
+
+	for _, deviceInfo := range devices {
+		if deviceInfo.Serial == serial {
+			return deviceInfo, nil
+		}
+	}
+
+	err = util.Errorf(util.DeviceNotFound, "device list doesn't contain serial %s", serial)
+	return nil, wrapClientError(err, c, "GetDeviceInfo")
 }
 
 /*
