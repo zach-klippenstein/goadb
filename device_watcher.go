@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"math/rand"
+	"time"
 
 	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
@@ -120,7 +122,7 @@ in turn, close Scanner and stop this goroutine).
 
 TODO: to support shutdown, spawn a new goroutine each time a server connection is established.
 This goroutine should read messages and send them to a message channel. Can write errors directly
-to errVal. publisHDevicesUntilError should take the msg chan and the scanner and select on the msg chan and stop chan, and if the stop
+to errVal. publishDevicesUntilError should take the msg chan and the scanner and select on the msg chan and stop chan, and if the stop
 chan sends, close the scanner and return true. If the msg chan closes, just return false.
 publishDevices can look at ret val: if false and err == EOF, reconnect. If false and other error, report err
 and abort. If true, report no error and stop.
@@ -147,7 +149,13 @@ func publishDevices(watcher *deviceWatcherImpl) {
 
 		if util.HasErrCode(err, util.ConnectionResetError) {
 			// The server died, restart and reconnect.
-			log.Println("[DeviceWatcher] server died, restarting…")
+
+			// Delay by a random [0ms, 500ms) in case multiple DeviceWatchers are trying to
+			// start the same server.
+			delay := time.Duration(rand.Intn(500)) * time.Millisecond
+
+			log.Printf("[DeviceWatcher] server died, restarting in %s…", delay)
+			time.Sleep(delay)
 			if err := watcher.startServer(); err != nil {
 				log.Println("[DeviceWatcher] error restarting server, giving up")
 				watcher.reportErr(err)
