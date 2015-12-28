@@ -10,14 +10,17 @@ import (
 )
 
 type SyncSender interface {
+	io.Closer
+
 	// SendOctetString sends a 4-byte string.
 	SendOctetString(string) error
 	SendInt32(int32) error
 	SendFileMode(os.FileMode) error
 	SendTime(time.Time) error
 
-	// Sends len(bytes) as an octet, followed by bytes.
-	SendString(str string) error
+	// Sends len(data) as an octet, followed by the bytes.
+	// If data is bigger than SyncMaxChunkSize, it returns an assertion error.
+	SendBytes(data []byte) error
 }
 
 type realSyncSender struct {
@@ -54,17 +57,24 @@ func (s *realSyncSender) SendTime(t time.Time) error {
 		util.NetworkError, "error sending time on sync sender")
 }
 
-func (s *realSyncSender) SendString(str string) error {
-	length := len(str)
-	if length > MaxChunkSize {
+func (s *realSyncSender) SendBytes(data []byte) error {
+	length := len(data)
+	if length > SyncMaxChunkSize {
 		// This limit might not apply to filenames, but it's big enough
 		// that I don't think it will be a problem.
-		return util.AssertionErrorf("str must be <= %d in length", MaxChunkSize)
+		return util.AssertionErrorf("data must be <= %d in length", SyncMaxChunkSize)
 	}
 
 	if err := s.SendInt32(int32(length)); err != nil {
-		return util.WrapErrorf(err, util.NetworkError, "error sending string length on sync sender")
+		return util.WrapErrorf(err, util.NetworkError, "error sending data length on sync sender")
 	}
-	return util.WrapErrorf(writeFully(s.Writer, []byte(str)),
-		util.NetworkError, "error sending string on sync sender")
+	return util.WrapErrorf(writeFully(s.Writer, data),
+		util.NetworkError, "error sending data on sync sender")
+}
+
+func (s *realSyncSender) Close() error {
+	if closer, ok := s.Writer.(io.Closer); ok {
+		return util.WrapErrorf(closer.Close(), util.NetworkError, "error closing sync sender")
+	}
+	return nil
 }

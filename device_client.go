@@ -3,11 +3,17 @@ package goadb
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
 )
+
+// MtimeOfClose should be passed to OpenWrite to set the file modification time to the time the Close
+// method is called.
+var MtimeOfClose = time.Time{}
 
 // DeviceClient communicates with a specific Android device.
 type DeviceClient struct {
@@ -169,6 +175,20 @@ func (c *DeviceClient) OpenRead(path string) (io.ReadCloser, error) {
 
 	reader, err := receiveFile(conn, path)
 	return reader, wrapClientError(err, c, "OpenRead(%s)", path)
+}
+
+// OpenWrite opens the file at path on the device, creating it with the permissions specified
+// by perms if necessary, and returns a writer that writes to the file.
+// The files modification time will be set to mtime when the WriterCloser is closed. The zero value
+// is TimeOfClose, which will use the time the Close method is called as the modification time.
+func (c *DeviceClient) OpenWrite(path string, perms os.FileMode, mtime time.Time) (io.WriteCloser, error) {
+	conn, err := c.getSyncConn()
+	if err != nil {
+		return nil, wrapClientError(err, c, "OpenWrite(%s)", path)
+	}
+
+	writer, err := sendFile(conn, path, perms, mtime)
+	return writer, wrapClientError(err, c, "OpenWrite(%s)", path)
 }
 
 // getAttribute returns the first message returned by the server by running

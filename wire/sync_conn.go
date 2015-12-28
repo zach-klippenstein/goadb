@@ -1,9 +1,10 @@
-// TODO(z): Write SyncSender.SendBytes().
 package wire
+
+import "github.com/zach-klippenstein/goadb/util"
 
 const (
 	// Chunks cannot be longer than 64k.
-	MaxChunkSize = 64 * 1024
+	SyncMaxChunkSize = 64 * 1024
 )
 
 /*
@@ -27,4 +28,10 @@ Modification time seems to be the Unix timestamp format, i.e. seconds since Epoc
 type SyncConn struct {
 	SyncScanner
 	SyncSender
+}
+
+// Close closes both the sender and the scanner, and returns any errors.
+func (c SyncConn) Close() error {
+	return util.CombineErrs("error closing SyncConn", util.NetworkError,
+		c.SyncScanner.Close(), c.SyncSender.Close())
 }

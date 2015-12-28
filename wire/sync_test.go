@@ -60,10 +60,10 @@ func TestSyncReadStringTooShort(t *testing.T) {
 	assert.Equal(t, errIncompleteMessage("bytes", 1, 5), err)
 }
 
-func TestSyncSendString(t *testing.T) {
+func TestSyncSendBytes(t *testing.T) {
 	var buf bytes.Buffer
 	s := NewSyncSender(&buf)
-	err := s.SendString("hello")
+	err := s.SendBytes([]byte("hello"))
 	assert.NoError(t, err)
 	assert.Equal(t, "\005\000\000\000hello", buf.String())
 }
