@@ -131,7 +131,7 @@ func pull(showProgress bool, remotePath, localPath string, device goadb.DeviceDe
 
 	remoteFile, err := client.OpenRead(remotePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, err)
+		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, util.ErrorWithCauseChain(err))
 		return 1
 	}
 	defer remoteFile.Close()

@@ -59,7 +59,7 @@ func doCommand(cmd string) error {
 		return err
 	}
 
-	status, err := conn.ReadStatus()
+	status, err := conn.ReadStatus("")
 	if err != nil {
 		return err
 	}

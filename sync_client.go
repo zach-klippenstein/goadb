@@ -20,7 +20,7 @@ func stat(conn *wire.SyncConn, path string) (*DirEntry, error) {
 		return nil, err
 	}
 
-	id, err := conn.ReadOctetString()
+	id, err := conn.ReadStatus("stat")
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,7 @@ func receiveFile(conn *wire.SyncConn, path string) (io.ReadCloser, error) {
 	if err := conn.SendString(path); err != nil {
 		return nil, err
 	}
-
-	return newSyncFileReader(conn), nil
+	return newSyncFileReader(conn)
 }
 
 func readStat(s wire.SyncScanner) (entry *DirEntry, err error) {

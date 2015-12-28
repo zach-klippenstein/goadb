@@ -32,7 +32,7 @@ type MockServer struct {
 	// but not returned.
 	Errs []error
 
-	Status wire.StatusCode
+	Status string
 
 	// Messages are returned from read calls in order, each preceded by a length header.
 	Messages     []string
@@ -53,7 +53,7 @@ func (s *MockServer) Dial() (*wire.Conn, error) {
 	return wire.NewConn(s, s), nil
 }
 
-func (s *MockServer) ReadStatus() (wire.StatusCode, error) {
+func (s *MockServer) ReadStatus(req string) (string, error) {
 	s.logMethod("ReadStatus")
 	if err := s.getNextErrToReturn(); err != nil {
 		return "", err
