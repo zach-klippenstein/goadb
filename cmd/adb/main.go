@@ -46,7 +46,13 @@ func listDevices(long bool) int {
 
 	for _, device := range devices {
 		if long {
-			fmt.Printf("%s\t\t%s\t%s\n", device.Serial, device.Product, device.Model)
+			if device.Usb == "" {
+				fmt.Printf("%s\tproduct:%s model:%s device:%s\n",
+					device.Serial, device.Product, device.Model, device.DeviceInfo)
+			} else {
+				fmt.Printf("%s\tusb:%s product:%s model:%s device:%s\n",
+					device.Serial, device.Usb, device.Product, device.Model, device.DeviceInfo)
+			}
 		} else {
 			fmt.Println(device.Serial)
 		}
