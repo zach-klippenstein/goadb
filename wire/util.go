@@ -21,28 +21,6 @@ type ErrorResponseDetails struct {
 // Old servers send "device not found", and newer ones "device 'serial' not found".
 var deviceNotFoundMessagePattern = regexp.MustCompile(`device( '.*')? not found`)
 
-// Reads the status, and if failure, reads the message and returns it as an error.
-// If the status is success, doesn't read the message.
-// req is just used to populate the AdbError, and can be nil.
-func ReadStatusFailureAsError(s Scanner, req string) error {
-	status, err := s.ReadStatus()
-	if err != nil {
-		return util.WrapErrorf(err, util.NetworkError, "error reading status for %s", req)
-	}
-
-	if !status.IsSuccess() {
-		msg, err := s.ReadMessage()
-		if err != nil {
-			return util.WrapErrorf(err, util.NetworkError,
-				"server returned error for %s, but couldn't read the error message", req)
-		}
-
-		return adbServerError(req, string(msg))
-	}
-
-	return nil
-}
-
 func adbServerError(request string, serverMsg string) error {
 	var msg string
 	if request == "" {
@@ -64,6 +42,15 @@ func adbServerError(request string, serverMsg string) error {
 			ServerMsg: serverMsg,
 		},
 	}
+}
+
+// IsAdbServerErrorMatching returns true if err is an *util.Err with code AdbError and for which
+// predicate returns true when passed Details.ServerMsg.
+func IsAdbServerErrorMatching(err error, predicate func(string) bool) bool {
+	if err, ok := err.(*util.Err); ok && err.Code == util.AdbError {
+		return predicate(err.Details.(ErrorResponseDetails).ServerMsg)
+	}
+	return false
 }
 
 func errIncompleteMessage(description string, actual int, expected int) error {

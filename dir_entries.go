@@ -74,16 +74,16 @@ func (entries *DirEntries) Close() error {
 }
 
 func readNextDirListEntry(s wire.SyncScanner) (entry *DirEntry, done bool, err error) {
-	id, err := s.ReadOctetString()
+	status, err := s.ReadStatus("dir-entry")
 	if err != nil {
 		return
 	}
 
-	if id == "DONE" {
+	if status == "DONE" {
 		done = true
 		return
-	} else if id != "DENT" {
-		err = fmt.Errorf("error reading dir entries: expected dir entry ID 'DENT', but got '%s'", id)
+	} else if status != "DENT" {
+		err = fmt.Errorf("error reading dir entries: expected dir entry ID 'DENT', but got '%s'", status)
 		return
 	}
 

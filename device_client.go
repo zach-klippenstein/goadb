@@ -112,7 +112,7 @@ func (c *DeviceClient) RunCommand(cmd string, args ...string) (string, error) {
 	if err = conn.SendMessage([]byte(req)); err != nil {
 		return "", wrapClientError(err, c, "RunCommand")
 	}
-	if err = wire.ReadStatusFailureAsError(conn, req); err != nil {
+	if _, err = conn.ReadStatus(req); err != nil {
 		return "", wrapClientError(err, c, "RunCommand")
 	}
 
@@ -192,7 +192,7 @@ func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
 	if err := wire.SendMessageString(conn, "sync:"); err != nil {
 		return nil, err
 	}
-	if err := wire.ReadStatusFailureAsError(conn, "sync"); err != nil {
+	if _, err := conn.ReadStatus("sync"); err != nil {
 		return nil, err
 	}
 
@@ -213,7 +213,7 @@ func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
 		return nil, util.WrapErrf(err, "error connecting to device '%s'", c.descriptor)
 	}
 
-	if err = wire.ReadStatusFailureAsError(conn, req); err != nil {
+	if _, err = conn.ReadStatus(req); err != nil {
 		conn.Close()
 		return nil, err
 	}

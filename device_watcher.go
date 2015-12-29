@@ -180,7 +180,7 @@ func connectToTrackDevices(dialer Dialer) (wire.Scanner, error) {
 		return nil, err
 	}
 
-	if err := wire.ReadStatusFailureAsError(conn, "host:track-devices"); err != nil {
+	if _, err := conn.ReadStatus("host:track-devices"); err != nil {
 		conn.Close()
 		return nil, err
 	}

@@ -17,13 +17,6 @@ var (
 	someTimeEncoded = []byte{151, 208, 42, 85}
 )
 
-func TestSyncReadOctetString(t *testing.T) {
-	s := NewSyncScanner(strings.NewReader("helo"))
-	str, err := s.ReadOctetString()
-	assert.NoError(t, err)
-	assert.Equal(t, "helo", str)
-}
-
 func TestSyncSendOctetString(t *testing.T) {
 	var buf bytes.Buffer
 	s := NewSyncSender(&buf)

@@ -10,8 +10,8 @@ import (
 )
 
 type SyncScanner interface {
-	// ReadOctetString reads a 4-byte string.
-	ReadOctetString() (string, error)
+	io.Closer
+	StatusReader
 	ReadInt32() (int32, error)
 	ReadFileMode() (os.FileMode, error)
 	ReadTime() (time.Time, error)
@@ -23,9 +23,6 @@ type SyncScanner interface {
 	// bytes (see io.LimitReader). The returned reader should be fully
 	// read before reading anything off the Scanner again.
 	ReadBytes() (io.Reader, error)
-
-	// Closes the underlying reader.
-	Close() error
 }
 
 type realSyncScanner struct {
@@ -36,33 +33,13 @@ func NewSyncScanner(r io.Reader) SyncScanner {
 	return &realSyncScanner{r}
 }
 
-func RequireOctetString(s SyncScanner, expected string) error {
-	actual, err := s.ReadOctetString()
-	if err != nil {
-		return util.WrapErrorf(err, util.NetworkError, "expected to read '%s'", expected)
-	}
-	if actual != expected {
-		return util.AssertionErrorf("expected to read '%s', got '%s'", expected, actual)
-	}
-	return nil
+func (s *realSyncScanner) ReadStatus(req string) (string, error) {
+	return readStatusFailureAsError(s.Reader, req, readInt32)
 }
 
-func (s *realSyncScanner) ReadOctetString() (string, error) {
-	octet := make([]byte, 4)
-	n, err := io.ReadFull(s.Reader, octet)
-
-	if err != nil && err != io.ErrUnexpectedEOF {
-		return "", util.WrapErrorf(err, util.NetworkError, "error reading octet string from sync scanner")
-	} else if err == io.ErrUnexpectedEOF {
-		return "", errIncompleteMessage("octet", n, 4)
-	}
-
-	return string(octet), nil
-}
 func (s *realSyncScanner) ReadInt32() (int32, error) {
-	var value int32
-	err := binary.Read(s.Reader, binary.LittleEndian, &value)
-	return value, util.WrapErrorf(err, util.NetworkError, "error reading int from sync scanner")
+	value, err := readInt32(s.Reader)
+	return int32(value), util.WrapErrorf(err, util.NetworkError, "error reading int from sync scanner")
 }
 func (s *realSyncScanner) ReadFileMode() (os.FileMode, error) {
 	var value uint32
