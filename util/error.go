@@ -77,6 +77,44 @@ func WrapErrf(cause error, format string, args ...interface{}) error {
 	}
 }
 
+// CombineErrs returns an error that wraps all the non-nil errors passed to it.
+// If all errors are nil, returns nil.
+// If there's only one non-nil error, returns that error without wrapping.
+// Else, returns an error with the message and code as passed, with the cause set to an error
+// that contains all the non-nil errors and for which Error() returns the concatenation of all their messages.
+func CombineErrs(msg string, code ErrCode, errs ...error) error {
+	var nonNilErrs []error
+	for _, err := range errs {
+		if err != nil {
+			nonNilErrs = append(nonNilErrs, err)
+		}
+	}
+
+	switch len(nonNilErrs) {
+	case 0:
+		return nil
+	case 1:
+		return nonNilErrs[0]
+	default:
+		return WrapErrorf(multiError(nonNilErrs), code, "%s", msg)
+	}
+}
+
+type multiError []error
+
+func (errs multiError) Error() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "%d errors: [", len(errs))
+	for i, err := range errs {
+		buf.WriteString(err.Error())
+		if i < len(errs)-1 {
+			buf.WriteString(" ∪ ")
+		}
+	}
+	buf.WriteRune(']')
+	return buf.String()
+}
+
 /*
 WrapErrorf returns an *Err that wraps another arbitrary error with an ErrCode and a message.
 
