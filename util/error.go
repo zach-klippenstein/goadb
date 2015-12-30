@@ -176,7 +176,12 @@ func ErrorWithCauseChain(err error) string {
 			break
 		}
 	}
-	buffer.WriteString(err.Error())
+
+	if err != nil {
+		buffer.WriteString(err.Error())
+	} else {
+		buffer.WriteString("<err=nil>")
+	}
 
 	return buffer.String()
 }
