@@ -43,21 +43,31 @@ func encodePathAndMode(path string, mode os.FileMode) []byte {
 
 // Write writes the min of (len(buf), 64k).
 func (w *syncFileWriter) Write(buf []byte) (n int, err error) {
-	// Writes < 64k have a one-to-one mapping to chunks.
-	// If buffer is larger than the max, we'll return the max size and leave it up to the
-	// caller to handle correctly.
-	if len(buf) > wire.SyncMaxChunkSize {
-		buf = buf[:wire.SyncMaxChunkSize]
+	written := 0
+
+	// If buf > 64k we'll have to send multiple chunks.
+	// TODO Refactor this into something that can coalesce smaller writes into a single chukn.
+	for len(buf) > 0 {
+		// Writes < 64k have a one-to-one mapping to chunks.
+		// If buffer is larger than the max, we'll return the max size and leave it up to the
+		// caller to handle correctly.
+		partialBuf := buf
+		if len(partialBuf) > wire.SyncMaxChunkSize {
+			partialBuf = partialBuf[:wire.SyncMaxChunkSize]
+		}
+
+		if err := w.sender.SendOctetString(wire.StatusSyncData); err != nil {
+			return written, err
+		}
+		if err := w.sender.SendBytes(partialBuf); err != nil {
+			return written, err
+		}
+
+		written += len(partialBuf)
+		buf = buf[len(partialBuf):]
 	}
 
-	if err := w.sender.SendOctetString(wire.StatusSyncData); err != nil {
-		return 0, err
-	}
-	if err := w.sender.SendBytes(buf); err != nil {
-		return 0, err
-	}
-
-	return len(buf), nil
+	return written, nil
 }
 
 func (w *syncFileWriter) Close() error {

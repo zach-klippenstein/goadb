@@ -42,18 +42,26 @@ func TestFileWriterWriteLargeChunk(t *testing.T) {
 	var buf bytes.Buffer
 	writer := newSyncFileWriter(wire.NewSyncSender(&buf), MtimeOfClose)
 
+	// Send just enough data to get 2 chunks.
 	data := make([]byte, wire.SyncMaxChunkSize+1)
 	n, err := writer.Write(data)
 
 	assert.NoError(t, err)
-	assert.Equal(t, wire.SyncMaxChunkSize, n)
-	assert.Equal(t, 8 + wire.SyncMaxChunkSize, buf.Len())
+	assert.Equal(t, wire.SyncMaxChunkSize+1, n)
+	assert.Equal(t, 8 + 8 + wire.SyncMaxChunkSize+1, buf.Len())
 
-	expectedHeader := []byte("DATA0000")
+	// First header.
+	chunk := buf.Bytes()[:8+wire.SyncMaxChunkSize]
+	expectedHeader := []byte("DATA----")
 	binary.LittleEndian.PutUint32(expectedHeader[4:], wire.SyncMaxChunkSize)
-	assert.Equal(t, expectedHeader, buf.Bytes()[:8])
+	assert.Equal(t, expectedHeader, chunk[:8])
+	assert.Equal(t, data[:wire.SyncMaxChunkSize], chunk[8:])
 
-	assert.Equal(t, string(data[:wire.SyncMaxChunkSize]), buf.String()[8:])
+	// Second header.
+	chunk = buf.Bytes()[wire.SyncMaxChunkSize+8:wire.SyncMaxChunkSize+8+1]
+	expectedHeader = []byte("DATA\000\000\000\000")
+	binary.LittleEndian.PutUint32(expectedHeader[4:], 1)
+	assert.Equal(t, expectedHeader, chunk[:8])
 }
 
 func TestFileWriterCloseEmpty(t *testing.T) {
