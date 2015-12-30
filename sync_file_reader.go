@@ -1,7 +1,6 @@
 package goadb
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/zach-klippenstein/goadb/util"
@@ -15,6 +14,9 @@ type syncFileReader struct {
 
 	// Reader for the current chunk only.
 	chunkReader io.Reader
+
+	// False until the DONE chunk is encountered.
+	eof bool
 }
 
 var _ io.ReadCloser = &syncFileReader{}
@@ -26,18 +28,30 @@ func newSyncFileReader(s wire.SyncScanner) (r io.ReadCloser, err error) {
 
 	// Read the header for the first chunk to consume any errors.
 	if _, err = r.Read([]byte{}); err != nil {
-		r.Close()
-		return nil, err
+		if err == io.EOF {
+			// EOF means the file was empty. This still means the file was opened successfully,
+			// and the next time the caller does a read they'll get the EOF and handle it themselves.
+			err = nil
+		} else {
+			r.Close()
+			return nil, err
+		}
 	}
 	return
 }
 
 func (r *syncFileReader) Read(buf []byte) (n int, err error) {
+	if r.eof {
+		return 0, io.EOF
+	}
+
 	if r.chunkReader == nil {
 		chunkReader, err := readNextChunk(r.scanner)
 		if err != nil {
-			// If this is EOF, we've read the last chunk.
-			// Either way, we want to pass it up to the caller.
+			if err == io.EOF {
+				// We just read the last chunk, set our flag before passing it up.
+				r.eof = true
+			}
 			return 0, err
 		}
 		r.chunkReader = chunkReader
@@ -82,7 +96,7 @@ func readNextChunk(r wire.SyncScanner) (io.Reader, error) {
 	case wire.StatusSyncDone:
 		return nil, io.EOF
 	default:
-		return nil, fmt.Errorf("expected chunk id '%s' or '%s', but got '%s'",
+		return nil, util.Errorf(util.AssertionError, "expected chunk id '%s' or '%s', but got '%s'",
 			wire.StatusSyncData, wire.StatusSyncDone, []byte(status))
 	}
 }

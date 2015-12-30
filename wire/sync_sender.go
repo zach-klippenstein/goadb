@@ -68,8 +68,7 @@ func (s *realSyncSender) SendBytes(data []byte) error {
 	if err := s.SendInt32(int32(length)); err != nil {
 		return util.WrapErrorf(err, util.NetworkError, "error sending data length on sync sender")
 	}
-	return util.WrapErrorf(writeFully(s.Writer, data),
-		util.NetworkError, "error sending data on sync sender")
+	return writeFully(s.Writer, data)
 }
 
 func (s *realSyncSender) Close() error {

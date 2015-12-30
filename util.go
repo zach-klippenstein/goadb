@@ -26,7 +26,7 @@ func wrapClientError(err error, client interface{}, operation string, args ...in
 		return nil
 	}
 	if _, ok := err.(*util.Err); !ok {
-		panic("err is not a *util.Err")
+		panic("err is not a *util.Err: " + err.Error())
 	}
 
 	clientType := reflect.TypeOf(client)

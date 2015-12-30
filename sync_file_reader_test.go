@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
+	"io/ioutil"
 )
 
 func TestReadNextChunk(t *testing.T) {
@@ -44,7 +45,7 @@ func TestReadNextChunkInvalidChunkId(t *testing.T) {
 
 	// Read 1st chunk
 	_, err := readNextChunk(s)
-	assert.EqualError(t, err, "expected chunk id 'DATA' or 'DONE', but got 'ATAD'")
+	assert.EqualError(t, err, "AssertionError: expected chunk id 'DATA' or 'DONE', but got 'ATAD'")
 }
 
 func TestReadMultipleCalls(t *testing.T) {
@@ -89,6 +90,20 @@ func TestReadError(t *testing.T) {
 		"FAIL\004\000\000\000fail"))
 	_, err := newSyncFileReader(s)
 	assert.EqualError(t, err, "AdbError: server error for read-chunk request: fail ({Request:read-chunk ServerMsg:fail})")
+}
+
+func TestReadEmpty(t *testing.T) {
+	s := wire.NewSyncScanner(strings.NewReader(
+		"DONE"))
+	r, err := newSyncFileReader(s)
+	assert.NoError(t, err)
+
+	// Multiple read calls that return EOF is a valid case.
+	for i := 0; i < 5; i++ {
+		data, err := ioutil.ReadAll(r)
+		assert.NoError(t, err)
+		assert.Empty(t, data)
+	}
 }
 
 func TestReadErrorNotFound(t *testing.T) {
