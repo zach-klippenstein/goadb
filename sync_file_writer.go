@@ -66,7 +66,7 @@ func (w *syncFileWriter) Close() error {
 	}
 
 	if err := w.sender.SendOctetString(wire.StatusSyncDone); err != nil {
-		return util.WrapErrf(err, "error closing file writer")
+		return util.WrapErrf(err, "error sending done chunk to close stream")
 	}
 	if err := w.sender.SendTime(w.mtime); err != nil {
 		return util.WrapErrf(err, "error writing file modification time")

@@ -5,6 +5,8 @@ import (
 	"io"
 	"regexp"
 
+	"sync"
+
 	"github.com/zach-klippenstein/goadb/util"
 )
 
@@ -79,4 +81,22 @@ func writeFully(w io.Writer, data []byte) error {
 		offset += n
 	}
 	return nil
+}
+
+// MultiCloseable wraps c in a ReadWriteCloser that can be safely closed multiple times.
+func MultiCloseable(c io.ReadWriteCloser) io.ReadWriteCloser {
+	return &multiCloseable{ReadWriteCloser: c}
+}
+
+type multiCloseable struct {
+	io.ReadWriteCloser
+	closeOnce sync.Once
+	err       error
+}
+
+func (c *multiCloseable) Close() error {
+	c.closeOnce.Do(func() {
+		c.err = c.ReadWriteCloser.Close()
+	})
+	return c.err
 }

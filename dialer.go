@@ -2,6 +2,7 @@ package goadb
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"runtime"
 
@@ -66,17 +67,22 @@ func (d *netDialer) Dial() (*wire.Conn, error) {
 		}
 	}
 
-	conn := &wire.Conn{
-		Scanner: wire.NewScanner(netConn),
-		Sender:  wire.NewSender(netConn),
-	}
+	// net.Conn can't be closed more than once, but wire.Conn will try to close both sender and scanner
+	// so we need to wrap it to make it safe.
+	safeConn := wire.MultiCloseable(netConn)
 
 	// Prevent leaking the network connection, not sure if TCPConn does this itself.
-	runtime.SetFinalizer(netConn, func(conn *net.TCPConn) {
+	// Note that the network connection may still be in use after the conn isn't (scanners/senders
+	// can give their underlying connections to other scanner/sender types), so we can't
+	// set the finalizer on conn.
+	runtime.SetFinalizer(safeConn, func(conn io.ReadWriteCloser) {
 		conn.Close()
 	})
 
-	return conn, nil
+	return &wire.Conn{
+		Scanner: wire.NewScanner(safeConn),
+		Sender:  wire.NewSender(safeConn),
+	}, nil
 }
 
 func roundTripSingleResponse(d Dialer, req string) ([]byte, error) {
