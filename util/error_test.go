@@ -23,6 +23,8 @@ caused by AssertionError: err2
 caused by err3`
 
 	assert.Equal(t, expected, ErrorWithCauseChain(err))
+
+	assert.Equal(t, "<err=nil>", ErrorWithCauseChain(nil))
 }
 
 func TestCombineErrors(t *testing.T) {
