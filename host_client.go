@@ -19,16 +19,16 @@ See list of services at https://android.googlesource.com/platform/system/core/+/
 */
 // TODO(z): Finish implementing host services.
 type HostClient struct {
-	config ClientConfig
+	server Server
 }
 
-func NewHostClient(config ClientConfig) *HostClient {
-	return &HostClient{config.sanitized()}
+func NewHostClient(server Server) *HostClient {
+	return &HostClient{server}
 }
 
 // GetServerVersion asks the ADB server for its internal version number.
 func (c *HostClient) GetServerVersion() (int, error) {
-	resp, err := roundTripSingleResponse(c.config.Dialer, "host:version")
+	resp, err := roundTripSingleResponse(c.server, "host:version")
 	if err != nil {
 		return 0, wrapClientError(err, c, "GetServerVersion")
 	}
@@ -47,7 +47,7 @@ Corresponds to the command:
 	adb kill-server
 */
 func (c *HostClient) KillServer() error {
-	conn, err := c.config.Dialer.Dial()
+	conn, err := c.server.Dial()
 	if err != nil {
 		return wrapClientError(err, c, "KillServer")
 	}
@@ -67,7 +67,7 @@ Corresponds to the command:
 	adb devices
 */
 func (c *HostClient) ListDeviceSerials() ([]string, error) {
-	resp, err := roundTripSingleResponse(c.config.Dialer, "host:devices")
+	resp, err := roundTripSingleResponse(c.server, "host:devices")
 	if err != nil {
 		return nil, wrapClientError(err, c, "ListDeviceSerials")
 	}
@@ -91,7 +91,7 @@ Corresponds to the command:
 	adb devices -l
 */
 func (c *HostClient) ListDevices() ([]*DeviceInfo, error) {
-	resp, err := roundTripSingleResponse(c.config.Dialer, "host:devices-l")
+	resp, err := roundTripSingleResponse(c.server, "host:devices-l")
 	if err != nil {
 		return nil, wrapClientError(err, c, "ListDevices")
 	}

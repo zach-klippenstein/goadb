@@ -1,7 +1,6 @@
 package goadb
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -207,8 +206,7 @@ func TestWentOffline(t *testing.T) {
 }
 
 func TestPublishDevicesRestartsServer(t *testing.T) {
-	starter := &MockServerStarter{}
-	dialer := &MockServer{
+	server := &MockServer{
 		Status: wire.StatusSuccess,
 		Errs: []error{
 			nil, nil, nil, // Successful dial.
@@ -217,34 +215,17 @@ func TestPublishDevicesRestartsServer(t *testing.T) {
 		},
 	}
 	watcher := deviceWatcherImpl{
-		config:      ClientConfig{dialer},
-		eventChan:   make(chan DeviceStateChangedEvent),
-		startServer: starter.StartServer,
+		server:    server,
+		eventChan: make(chan DeviceStateChangedEvent),
 	}
 
 	publishDevices(&watcher)
 
-	assert.Empty(t, dialer.Errs)
-	assert.Equal(t, []string{"host:track-devices"}, dialer.Requests)
-	assert.Equal(t, []string{"Dial", "SendMessage", "ReadStatus", "ReadMessage", "Dial"}, dialer.Trace)
+	assert.Empty(t, server.Errs)
+	assert.Equal(t, []string{"host:track-devices"}, server.Requests)
+	assert.Equal(t, []string{"Dial", "SendMessage", "ReadStatus", "ReadMessage", "Start", "Dial"}, server.Trace)
 	err := watcher.err.Load().(*util.Err)
 	assert.Equal(t, util.ServerNotAvailable, err.Code)
-	assert.Equal(t, 1, starter.startCount)
-}
-
-type MockServerStarter struct {
-	startCount int
-	err        error
-}
-
-func (s *MockServerStarter) StartServer() error {
-	log.Printf("Starting mock server")
-	if s.err == nil {
-		s.startCount += 1
-		return nil
-	} else {
-		return s.err
-	}
 }
 
 func assertContainsOnly(t *testing.T, expected, actual []DeviceStateChangedEvent) {

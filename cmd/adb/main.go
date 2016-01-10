@@ -36,8 +36,17 @@ var (
 	pushRemoteArg    = pushCommand.Arg("remote", "Path of destination file on device.").Required().String()
 )
 
+var server goadb.Server
+
 func main() {
 	var exitCode int
+
+	var err error
+	server, err = goadb.NewServer(goadb.ServerConfig{})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
 
 	switch kingpin.Parse() {
 	case "devices":
@@ -62,7 +71,7 @@ func parseDevice() goadb.DeviceDescriptor {
 }
 
 func listDevices(long bool) int {
-	client := goadb.NewHostClient(goadb.ClientConfig{})
+	client := goadb.NewHostClient(server)
 	devices, err := client.ListDevices()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -99,7 +108,7 @@ func runShellCommand(commandAndArgs []string, device goadb.DeviceDescriptor) int
 		args = commandAndArgs[1:]
 	}
 
-	client := goadb.NewDeviceClient(goadb.ClientConfig{}, device)
+	client := goadb.NewDeviceClient(server, device)
 	output, err := client.RunCommand(command, args...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -121,7 +130,7 @@ func pull(showProgress bool, remotePath, localPath string, device goadb.DeviceDe
 		localPath = filepath.Base(remotePath)
 	}
 
-	client := goadb.NewDeviceClient(goadb.ClientConfig{}, device)
+	client := goadb.NewDeviceClient(server, device)
 
 	info, err := client.Stat(remotePath)
 	if util.HasErrCode(err, util.FileNoExistError) {
@@ -194,7 +203,7 @@ func push(showProgress bool, localPath, remotePath string, device goadb.DeviceDe
 	}
 	defer localFile.Close()
 
-	client := goadb.NewDeviceClient(goadb.ClientConfig{}, device)
+	client := goadb.NewDeviceClient(server, device)
 	writer, err := client.OpenWrite(remotePath, perms, mtime)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, err)

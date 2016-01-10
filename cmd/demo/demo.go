@@ -12,15 +12,26 @@ import (
 	"github.com/zach-klippenstein/goadb/util"
 )
 
-var port = flag.Int("p", adb.AdbPort, "")
+var (
+	port = flag.Int("p", adb.AdbPort, "")
+
+	server adb.Server
+)
 
 func main() {
 	flag.Parse()
 
-	client := adb.NewHostClient(adb.ClientConfig{})
-
+	var err error
+	server, err = adb.NewServer(adb.ServerConfig{
+		Port: *port,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("Starting server…")
-	adb.StartServer()
+	server.Start()
+
+	client := adb.NewHostClient(server)
 
 	serverVersion, err := client.GetServerVersion()
 	if err != nil {
@@ -51,7 +62,7 @@ func main() {
 
 	fmt.Println()
 	fmt.Println("Watching for device state changes.")
-	watcher := adb.NewDeviceWatcher(adb.ClientConfig{})
+	watcher := adb.NewDeviceWatcher(server)
 	for event := range watcher.C() {
 		fmt.Printf("\t[%s]%+v\n", time.Now(), event)
 	}
@@ -77,7 +88,7 @@ func printErr(err error) {
 }
 
 func PrintDeviceInfoAndError(descriptor adb.DeviceDescriptor) {
-	device := adb.NewDeviceClient(adb.ClientConfig{}, descriptor)
+	device := adb.NewDeviceClient(server, descriptor)
 	if err := PrintDeviceInfo(device); err != nil {
 		log.Println(err)
 	}
