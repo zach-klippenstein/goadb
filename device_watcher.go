@@ -2,10 +2,10 @@ package goadb
 
 import (
 	"log"
+	"math/rand"
 	"runtime"
 	"strings"
 	"sync/atomic"
-	"math/rand"
 	"time"
 
 	"github.com/zach-klippenstein/goadb/util"
@@ -59,22 +59,18 @@ var deviceStateStrings = map[string]DeviceState{
 }
 
 type deviceWatcherImpl struct {
-	config ClientConfig
+	server Server
 
 	// If an error occurs, it is stored here and eventChan is close immediately after.
 	err atomic.Value
 
 	eventChan chan DeviceStateChangedEvent
-
-	// Function to start the server if it's not running or dies.
-	startServer func() error
 }
 
-func NewDeviceWatcher(config ClientConfig) *DeviceWatcher {
+func NewDeviceWatcher(server Server) *DeviceWatcher {
 	watcher := &DeviceWatcher{&deviceWatcherImpl{
-		config:      config.sanitized(),
-		eventChan:   make(chan DeviceStateChangedEvent),
-		startServer: StartServer,
+		server:    server,
+		eventChan: make(chan DeviceStateChangedEvent),
 	}}
 
 	runtime.SetFinalizer(watcher, func(watcher *DeviceWatcher) {
@@ -134,7 +130,7 @@ func publishDevices(watcher *deviceWatcherImpl) {
 	finished := false
 
 	for {
-		scanner, err := connectToTrackDevices(watcher.config.Dialer)
+		scanner, err := connectToTrackDevices(watcher.server)
 		if err != nil {
 			watcher.reportErr(err)
 			return
@@ -156,7 +152,7 @@ func publishDevices(watcher *deviceWatcherImpl) {
 
 			log.Printf("[DeviceWatcher] server died, restarting in %s…", delay)
 			time.Sleep(delay)
-			if err := watcher.startServer(); err != nil {
+			if err := watcher.server.Start(); err != nil {
 				log.Println("[DeviceWatcher] error restarting server, giving up")
 				watcher.reportErr(err)
 				return
@@ -169,8 +165,8 @@ func publishDevices(watcher *deviceWatcherImpl) {
 	}
 }
 
-func connectToTrackDevices(dialer Dialer) (wire.Scanner, error) {
-	conn, err := dialer.Dial()
+func connectToTrackDevices(server Server) (wire.Scanner, error) {
+	conn, err := server.Dial()
 	if err != nil {
 		return nil, err
 	}

@@ -49,7 +49,14 @@ func readLine() string {
 }
 
 func doCommand(cmd string) error {
-	conn, err := goadb.NewDialer("", *port).Dial()
+	server, err := goadb.NewServer(goadb.ServerConfig{
+		Port: *port,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conn, err := server.Dial()
 	if err != nil {
 		log.Fatal(err)
 	}

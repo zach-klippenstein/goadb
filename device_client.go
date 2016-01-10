@@ -17,18 +17,18 @@ var MtimeOfClose = time.Time{}
 
 // DeviceClient communicates with a specific Android device.
 type DeviceClient struct {
-	config     ClientConfig
+	server     Server
 	descriptor DeviceDescriptor
 
 	// Used to get device info.
 	deviceListFunc func() ([]*DeviceInfo, error)
 }
 
-func NewDeviceClient(config ClientConfig, descriptor DeviceDescriptor) *DeviceClient {
+func NewDeviceClient(server Server, descriptor DeviceDescriptor) *DeviceClient {
 	return &DeviceClient{
-		config:         config.sanitized(),
+		server:         server,
 		descriptor:     descriptor,
-		deviceListFunc: NewHostClient(config).ListDevices,
+		deviceListFunc: NewHostClient(server).ListDevices,
 	}
 }
 
@@ -194,7 +194,7 @@ func (c *DeviceClient) OpenWrite(path string, perms os.FileMode, mtime time.Time
 // getAttribute returns the first message returned by the server by running
 // <host-prefix>:<attr>, where host-prefix is determined from the DeviceDescriptor.
 func (c *DeviceClient) getAttribute(attr string) (string, error) {
-	resp, err := roundTripSingleResponse(c.config.Dialer,
+	resp, err := roundTripSingleResponse(c.server,
 		fmt.Sprintf("%s:%s", c.descriptor.getHostPrefix(), attr))
 	if err != nil {
 		return "", err
@@ -222,7 +222,7 @@ func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
 // dialDevice switches the connection to communicate directly with the device
 // by requesting the transport defined by the DeviceDescriptor.
 func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
-	conn, err := c.config.Dialer.Dial()
+	conn, err := c.server.Dial()
 	if err != nil {
 		return nil, err
 	}
