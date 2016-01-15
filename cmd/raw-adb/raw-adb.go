@@ -14,7 +14,7 @@ import (
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
-var port = flag.Int("p", goadb.AdbPort, "port the adb server is listening on")
+var port = flag.Int("p", adb.AdbPort, "port the adb server is listening on")
 
 func main() {
 	flag.Parse()
@@ -49,7 +49,7 @@ func readLine() string {
 }
 
 func doCommand(cmd string) error {
-	server, err := goadb.NewServer(goadb.ServerConfig{
+	server, err := adb.NewServer(adb.ServerConfig{
 		Port: *port,
 	})
 	if err != nil {
