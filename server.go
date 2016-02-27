@@ -1,4 +1,4 @@
-package goadb
+package adb
 
 import (
 	"errors"

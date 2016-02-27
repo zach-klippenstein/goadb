@@ -36,13 +36,13 @@ var (
 	pushRemoteArg    = pushCommand.Arg("remote", "Path of destination file on device.").Required().String()
 )
 
-var server goadb.Server
+var server adb.Server
 
 func main() {
 	var exitCode int
 
 	var err error
-	server, err = goadb.NewServer(goadb.ServerConfig{})
+	server, err = adb.NewServer(adb.ServerConfig{})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
@@ -62,16 +62,16 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func parseDevice() goadb.DeviceDescriptor {
+func parseDevice() adb.DeviceDescriptor {
 	if *serial != "" {
-		return goadb.DeviceWithSerial(*serial)
+		return adb.DeviceWithSerial(*serial)
 	}
 
-	return goadb.AnyDevice()
+	return adb.AnyDevice()
 }
 
 func listDevices(long bool) int {
-	client := goadb.NewHostClient(server)
+	client := adb.NewHostClient(server)
 	devices, err := client.ListDevices()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -94,7 +94,7 @@ func listDevices(long bool) int {
 	return 0
 }
 
-func runShellCommand(commandAndArgs []string, device goadb.DeviceDescriptor) int {
+func runShellCommand(commandAndArgs []string, device adb.DeviceDescriptor) int {
 	if len(commandAndArgs) == 0 {
 		fmt.Fprintln(os.Stderr, "error: no command")
 		kingpin.Usage()
@@ -108,7 +108,7 @@ func runShellCommand(commandAndArgs []string, device goadb.DeviceDescriptor) int
 		args = commandAndArgs[1:]
 	}
 
-	client := goadb.NewDeviceClient(server, device)
+	client := adb.NewDeviceClient(server, device)
 	output, err := client.RunCommand(command, args...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -119,7 +119,7 @@ func runShellCommand(commandAndArgs []string, device goadb.DeviceDescriptor) int
 	return 0
 }
 
-func pull(showProgress bool, remotePath, localPath string, device goadb.DeviceDescriptor) int {
+func pull(showProgress bool, remotePath, localPath string, device adb.DeviceDescriptor) int {
 	if remotePath == "" {
 		fmt.Fprintln(os.Stderr, "error: must specify remote file")
 		kingpin.Usage()
@@ -130,7 +130,7 @@ func pull(showProgress bool, remotePath, localPath string, device goadb.DeviceDe
 		localPath = filepath.Base(remotePath)
 	}
 
-	client := goadb.NewDeviceClient(server, device)
+	client := adb.NewDeviceClient(server, device)
 
 	info, err := client.Stat(remotePath)
 	if util.HasErrCode(err, util.FileNoExistError) {
@@ -167,7 +167,7 @@ func pull(showProgress bool, remotePath, localPath string, device goadb.DeviceDe
 	return 0
 }
 
-func push(showProgress bool, localPath, remotePath string, device goadb.DeviceDescriptor) int {
+func push(showProgress bool, localPath, remotePath string, device adb.DeviceDescriptor) int {
 	if remotePath == "" {
 		fmt.Fprintln(os.Stderr, "error: must specify remote file")
 		kingpin.Usage()
@@ -184,7 +184,7 @@ func push(showProgress bool, localPath, remotePath string, device goadb.DeviceDe
 		localFile = os.Stdin
 		// 0 size will hide the progress bar.
 		perms = os.FileMode(0660)
-		mtime = goadb.MtimeOfClose
+		mtime = adb.MtimeOfClose
 	} else {
 		var err error
 		localFile, err = os.Open(localPath)
@@ -203,7 +203,7 @@ func push(showProgress bool, localPath, remotePath string, device goadb.DeviceDe
 	}
 	defer localFile.Close()
 
-	client := goadb.NewDeviceClient(server, device)
+	client := adb.NewDeviceClient(server, device)
 	writer, err := client.OpenWrite(remotePath, perms, mtime)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, err)
