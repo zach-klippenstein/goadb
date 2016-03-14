@@ -40,7 +40,7 @@ func newDevice(serial string, attrs map[string]string) (*DeviceInfo, error) {
 }
 
 func parseDeviceList(list string, lineParseFunc func(string) (*DeviceInfo, error)) ([]*DeviceInfo, error) {
-	var devices []*DeviceInfo
+	devices := []*DeviceInfo{}
 	scanner := bufio.NewScanner(strings.NewReader(list))
 
 	for scanner.Scan() {
