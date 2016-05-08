@@ -17,23 +17,52 @@ import (
 const StdIoFilename = "-"
 
 var (
-	serial = kingpin.Flag("serial", "Connect to device by serial number.").Short('s').String()
+	serial = kingpin.Flag("serial",
+		"Connect to device by serial number.").
+		Short('s').
+		String()
 
-	shellCommand    = kingpin.Command("shell", "Run a shell command on the device.")
-	shellCommandArg = shellCommand.Arg("command", "Command to run on device.").Strings()
+	shellCommand = kingpin.Command("shell",
+		"Run a shell command on the device.")
+	shellCommandArg = shellCommand.Arg("command",
+		"Command to run on device.").
+		Strings()
 
-	devicesCommand  = kingpin.Command("devices", "List devices.")
-	devicesLongFlag = devicesCommand.Flag("long", "Include extra detail about devices.").Short('l').Bool()
+	devicesCommand = kingpin.Command("devices",
+		"List devices.")
+	devicesLongFlag = devicesCommand.Flag("long",
+		"Include extra detail about devices.").
+		Short('l').
+		Bool()
 
-	pullCommand      = kingpin.Command("pull", "Pull a file from the device.")
-	pullProgressFlag = pullCommand.Flag("progress", "Show progress.").Short('p').Bool()
-	pullRemoteArg    = pullCommand.Arg("remote", "Path of source file on device.").Required().String()
-	pullLocalArg     = pullCommand.Arg("local", "Path of destination file. If -, will write to stdout.").String()
+	pullCommand = kingpin.Command("pull",
+		"Pull a file from the device.")
+	pullProgressFlag = pullCommand.Flag("progress",
+		"Show progress.").
+		Short('p').
+		Bool()
+	pullRemoteArg = pullCommand.Arg("remote",
+		"Path of source file on device.").
+		Required().
+		String()
+	pullLocalArg = pullCommand.Arg("local",
+		"Path of destination file. If -, will write to stdout.").
+		String()
 
-	pushCommand      = kingpin.Command("push", "Push a file to the device.")
-	pushProgressFlag = pushCommand.Flag("progress", "Show progress.").Short('p').Bool()
-	pushLocalArg     = pushCommand.Arg("local", "Path of source file. If -, will read from stdin.").Required().String()
-	pushRemoteArg    = pushCommand.Arg("remote", "Path of destination file on device.").Required().String()
+	pushCommand = kingpin.Command("push",
+		"Push a file to the device.")
+	pushProgressFlag = pushCommand.Flag("progress",
+		"Show progress.").
+		Short('p').
+		Bool()
+	pushLocalArg = pushCommand.Arg("local",
+		"Path of source file. If -, will read from stdin.").
+		Required().
+		String()
+	pushRemoteArg = pushCommand.Arg("remote",
+		"Path of destination file on device.").
+		Required().
+		String()
 )
 
 var server adb.Server

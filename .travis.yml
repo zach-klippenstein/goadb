@@ -3,3 +3,7 @@ language: go
 go:
   - 1.6
   - tip
+
+install:
+ # Needed for tip (394ac81)
+  - go get -t -v ./...
