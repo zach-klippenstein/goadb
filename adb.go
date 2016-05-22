@@ -8,26 +8,56 @@ import (
 )
 
 /*
-HostClient communicates with host services on the adb server.
+Adb communicates with host services on the adb server.
 
 Eg.
-	StartServer()
-	client := NewHostClient()
+	client := adb.New()
 	client.ListDevices()
 
 See list of services at https://android.googlesource.com/platform/system/core/+/master/adb/SERVICES.TXT.
 */
 // TODO(z): Finish implementing host services.
-type HostClient struct {
-	server Server
+type Adb struct {
+	server server
 }
 
-func NewHostClient(server Server) *HostClient {
-	return &HostClient{server}
+// New creates a new Adb client that uses the default ServerConfig.
+func New() (*Adb, error) {
+	return NewWithConfig(ServerConfig{})
 }
 
-// GetServerVersion asks the ADB server for its internal version number.
-func (c *HostClient) GetServerVersion() (int, error) {
+func NewWithConfig(config ServerConfig) (*Adb, error) {
+	server, err := newServer(config)
+	if err != nil {
+		return nil, err
+	}
+	return &Adb{server}, nil
+}
+
+// Dial establishes a connection with the adb server.
+func (c *Adb) Dial() (*wire.Conn, error) {
+	return c.server.Dial()
+}
+
+// Starts the adb server if it’s not running.
+func (c *Adb) StartServer() error {
+	return c.server.Start()
+}
+
+func (c *Adb) Device(descriptor DeviceDescriptor) *Device {
+	return &Device{
+		server:         c.server,
+		descriptor:     descriptor,
+		deviceListFunc: c.ListDevices,
+	}
+}
+
+func (c *Adb) NewDeviceWatcher() *DeviceWatcher {
+	return newDeviceWatcher(c.server)
+}
+
+// ServerVersion asks the ADB server for its internal version number.
+func (c *Adb) ServerVersion() (int, error) {
 	resp, err := roundTripSingleResponse(c.server, "host:version")
 	if err != nil {
 		return 0, wrapClientError(err, c, "GetServerVersion")
@@ -46,7 +76,7 @@ KillServer tells the server to quit immediately.
 Corresponds to the command:
 	adb kill-server
 */
-func (c *HostClient) KillServer() error {
+func (c *Adb) KillServer() error {
 	conn, err := c.server.Dial()
 	if err != nil {
 		return wrapClientError(err, c, "KillServer")
@@ -66,7 +96,7 @@ ListDeviceSerials returns the serial numbers of all attached devices.
 Corresponds to the command:
 	adb devices
 */
-func (c *HostClient) ListDeviceSerials() ([]string, error) {
+func (c *Adb) ListDeviceSerials() ([]string, error) {
 	resp, err := roundTripSingleResponse(c.server, "host:devices")
 	if err != nil {
 		return nil, wrapClientError(err, c, "ListDeviceSerials")
@@ -90,7 +120,7 @@ ListDevices returns the list of connected devices.
 Corresponds to the command:
 	adb devices -l
 */
-func (c *HostClient) ListDevices() ([]*DeviceInfo, error) {
+func (c *Adb) ListDevices() ([]*DeviceInfo, error) {
 	resp, err := roundTripSingleResponse(c.server, "host:devices-l")
 	if err != nil {
 		return nil, wrapClientError(err, c, "ListDevices")
@@ -103,7 +133,7 @@ func (c *HostClient) ListDevices() ([]*DeviceInfo, error) {
 	return devices, nil
 }
 
-func (c *HostClient) parseServerVersion(versionRaw []byte) (int, error) {
+func (c *Adb) parseServerVersion(versionRaw []byte) (int, error) {
 	versionStr := string(versionRaw)
 	version, err := strconv.ParseInt(versionStr, 16, 32)
 	if err != nil {

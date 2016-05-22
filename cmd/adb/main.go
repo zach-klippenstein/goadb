@@ -65,13 +65,13 @@ var (
 		String()
 )
 
-var server adb.Server
+var client *adb.Adb
 
 func main() {
 	var exitCode int
 
 	var err error
-	server, err = adb.NewServer(adb.ServerConfig{})
+	client, err = adb.NewWithConfig(adb.ServerConfig{})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
@@ -100,7 +100,7 @@ func parseDevice() adb.DeviceDescriptor {
 }
 
 func listDevices(long bool) int {
-	client := adb.NewHostClient(server)
+	//client := adb.New(server)
 	devices, err := client.ListDevices()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -137,7 +137,7 @@ func runShellCommand(commandAndArgs []string, device adb.DeviceDescriptor) int {
 		args = commandAndArgs[1:]
 	}
 
-	client := adb.NewDeviceClient(server, device)
+	client := client.Device(device)
 	output, err := client.RunCommand(command, args...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -159,7 +159,7 @@ func pull(showProgress bool, remotePath, localPath string, device adb.DeviceDesc
 		localPath = filepath.Base(remotePath)
 	}
 
-	client := adb.NewDeviceClient(server, device)
+	client := client.Device(device)
 
 	info, err := client.Stat(remotePath)
 	if util.HasErrCode(err, util.FileNoExistError) {
@@ -232,7 +232,7 @@ func push(showProgress bool, localPath, remotePath string, device adb.DeviceDesc
 	}
 	defer localFile.Close()
 
-	client := adb.NewDeviceClient(server, device)
+	client := client.Device(device)
 	writer, err := client.OpenWrite(remotePath, perms, mtime)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, err)

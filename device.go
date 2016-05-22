@@ -15,61 +15,55 @@ import (
 // method is called.
 var MtimeOfClose = time.Time{}
 
-// DeviceClient communicates with a specific Android device.
-type DeviceClient struct {
-	server     Server
+// Device communicates with a specific Android device.
+// To get an instance, call Device() on an Adb.
+type Device struct {
+	server     server
 	descriptor DeviceDescriptor
 
 	// Used to get device info.
 	deviceListFunc func() ([]*DeviceInfo, error)
 }
 
-func NewDeviceClient(server Server, descriptor DeviceDescriptor) *DeviceClient {
-	return &DeviceClient{
-		server:         server,
-		descriptor:     descriptor,
-		deviceListFunc: NewHostClient(server).ListDevices,
-	}
-}
-
-func (c *DeviceClient) String() string {
+func (c *Device) String() string {
 	return c.descriptor.String()
 }
 
-// get-product is documented, but not implemented in the server.
-// TODO(z): Make getProduct exported if get-product is ever implemented in adb.
-func (c *DeviceClient) getProduct() (string, error) {
+// get-product is documented, but not implemented, in the server.
+// TODO(z): Make product exported if get-product is ever implemented in adb.
+func (c *Device) product() (string, error) {
 	attr, err := c.getAttribute("get-product")
-	return attr, wrapClientError(err, c, "GetProduct")
+	return attr, wrapClientError(err, c, "Product")
 }
 
-func (c *DeviceClient) GetSerial() (string, error) {
+func (c *Device) Serial() (string, error) {
 	attr, err := c.getAttribute("get-serialno")
-	return attr, wrapClientError(err, c, "GetSerial")
+	return attr, wrapClientError(err, c, "Serial")
 }
 
-func (c *DeviceClient) GetDevicePath() (string, error) {
+func (c *Device) DevicePath() (string, error) {
 	attr, err := c.getAttribute("get-devpath")
-	return attr, wrapClientError(err, c, "GetDevicePath")
+	return attr, wrapClientError(err, c, "DevicePath")
 }
 
-func (c *DeviceClient) GetState() (string, error) {
+// State returns the connection state of the device (e.g. "device").
+func (c *Device) State() (string, error) {
 	attr, err := c.getAttribute("get-state")
-	return attr, wrapClientError(err, c, "GetState")
+	return attr, wrapClientError(err, c, "State")
 }
 
-func (c *DeviceClient) GetDeviceInfo() (*DeviceInfo, error) {
+func (c *Device) DeviceInfo() (*DeviceInfo, error) {
 	// Adb doesn't actually provide a way to get this for an individual device,
 	// so we have to just list devices and find ourselves.
 
-	serial, err := c.GetSerial()
+	serial, err := c.Serial()
 	if err != nil {
 		return nil, wrapClientError(err, c, "GetDeviceInfo(GetSerial)")
 	}
 
 	devices, err := c.deviceListFunc()
 	if err != nil {
-		return nil, wrapClientError(err, c, "GetDeviceInfo(ListDevices)")
+		return nil, wrapClientError(err, c, "DeviceInfo(ListDevices)")
 	}
 
 	for _, deviceInfo := range devices {
@@ -79,7 +73,7 @@ func (c *DeviceClient) GetDeviceInfo() (*DeviceInfo, error) {
 	}
 
 	err = util.Errorf(util.DeviceNotFound, "device list doesn't contain serial %s", serial)
-	return nil, wrapClientError(err, c, "GetDeviceInfo")
+	return nil, wrapClientError(err, c, "DeviceInfo")
 }
 
 /*
@@ -98,7 +92,7 @@ Source: https://android.googlesource.com/platform/system/core/+/master/adb/SERVI
 This method quotes the arguments for you, and will return an error if any of them
 contain double quotes.
 */
-func (c *DeviceClient) RunCommand(cmd string, args ...string) (string, error) {
+func (c *Device) RunCommand(cmd string, args ...string) (string, error) {
 	cmd, err := prepareCommandLine(cmd, args...)
 	if err != nil {
 		return "", wrapClientError(err, c, "RunCommand")
@@ -127,7 +121,7 @@ func (c *DeviceClient) RunCommand(cmd string, args ...string) (string, error) {
 }
 
 /*
-Remount, from the docs,
+Remount, from the official adb command’s docs:
 	Ask adbd to remount the device's filesystem in read-write mode,
 	instead of read-only. This is usually necessary before performing
 	an "adb sync" or "adb push" request.
@@ -135,7 +129,7 @@ Remount, from the docs,
 	that.
 Source: https://android.googlesource.com/platform/system/core/+/master/adb/SERVICES.TXT
 */
-func (c *DeviceClient) Remount() (string, error) {
+func (c *Device) Remount() (string, error) {
 	conn, err := c.dialDevice()
 	if err != nil {
 		return "", wrapClientError(err, c, "Remount")
@@ -146,7 +140,7 @@ func (c *DeviceClient) Remount() (string, error) {
 	return string(resp), wrapClientError(err, c, "Remount")
 }
 
-func (c *DeviceClient) ListDirEntries(path string) (*DirEntries, error) {
+func (c *Device) ListDirEntries(path string) (*DirEntries, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
 		return nil, wrapClientError(err, c, "ListDirEntries(%s)", path)
@@ -156,7 +150,7 @@ func (c *DeviceClient) ListDirEntries(path string) (*DirEntries, error) {
 	return entries, wrapClientError(err, c, "ListDirEntries(%s)", path)
 }
 
-func (c *DeviceClient) Stat(path string) (*DirEntry, error) {
+func (c *Device) Stat(path string) (*DirEntry, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
 		return nil, wrapClientError(err, c, "Stat(%s)", path)
@@ -167,7 +161,7 @@ func (c *DeviceClient) Stat(path string) (*DirEntry, error) {
 	return entry, wrapClientError(err, c, "Stat(%s)", path)
 }
 
-func (c *DeviceClient) OpenRead(path string) (io.ReadCloser, error) {
+func (c *Device) OpenRead(path string) (io.ReadCloser, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
 		return nil, wrapClientError(err, c, "OpenRead(%s)", path)
@@ -181,7 +175,7 @@ func (c *DeviceClient) OpenRead(path string) (io.ReadCloser, error) {
 // by perms if necessary, and returns a writer that writes to the file.
 // The files modification time will be set to mtime when the WriterCloser is closed. The zero value
 // is TimeOfClose, which will use the time the Close method is called as the modification time.
-func (c *DeviceClient) OpenWrite(path string, perms os.FileMode, mtime time.Time) (io.WriteCloser, error) {
+func (c *Device) OpenWrite(path string, perms os.FileMode, mtime time.Time) (io.WriteCloser, error) {
 	conn, err := c.getSyncConn()
 	if err != nil {
 		return nil, wrapClientError(err, c, "OpenWrite(%s)", path)
@@ -193,7 +187,7 @@ func (c *DeviceClient) OpenWrite(path string, perms os.FileMode, mtime time.Time
 
 // getAttribute returns the first message returned by the server by running
 // <host-prefix>:<attr>, where host-prefix is determined from the DeviceDescriptor.
-func (c *DeviceClient) getAttribute(attr string) (string, error) {
+func (c *Device) getAttribute(attr string) (string, error) {
 	resp, err := roundTripSingleResponse(c.server,
 		fmt.Sprintf("%s:%s", c.descriptor.getHostPrefix(), attr))
 	if err != nil {
@@ -202,7 +196,7 @@ func (c *DeviceClient) getAttribute(attr string) (string, error) {
 	return string(resp), nil
 }
 
-func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
+func (c *Device) getSyncConn() (*wire.SyncConn, error) {
 	conn, err := c.dialDevice()
 	if err != nil {
 		return nil, err
@@ -221,7 +215,7 @@ func (c *DeviceClient) getSyncConn() (*wire.SyncConn, error) {
 
 // dialDevice switches the connection to communicate directly with the device
 // by requesting the transport defined by the DeviceDescriptor.
-func (c *DeviceClient) dialDevice() (*wire.Conn, error) {
+func (c *Device) dialDevice() (*wire.Conn, error) {
 	conn, err := c.server.Dial()
 	if err != nil {
 		return nil, err
