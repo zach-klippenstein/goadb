@@ -21,6 +21,8 @@ type DeviceWatcher struct {
 }
 
 // DeviceStateChangedEvent represents a device state transition.
+// Contains the device’s old and new states, but also provides methods to query the
+// type of state transition.
 type DeviceStateChangedEvent struct {
 	Serial   string
 	OldState DeviceState
@@ -35,27 +37,6 @@ func (s DeviceStateChangedEvent) CameOnline() bool {
 // WentOffline returns true if this event represents a device going offline.
 func (s DeviceStateChangedEvent) WentOffline() bool {
 	return s.OldState == StateOnline && s.NewState != StateOnline
-}
-
-// DeviceState represents one of the 3 possible states adb will report devices.
-// A device can be communicated with when it's in StateOnline.
-// A USB device will transition from StateDisconnected->StateOffline->StateOnline when
-// plugged in, and then StateOnline->StateDisconnected when unplugged.
-// If code doesn't care about specific states, DeviceStateChangedEvent provides methods
-// to query at a higher level.
-//go:generate stringer -type=DeviceState
-type DeviceState int8
-
-const (
-	StateDisconnected DeviceState = iota
-	StateOffline
-	StateOnline
-)
-
-var deviceStateStrings = map[string]DeviceState{
-	"":        StateDisconnected,
-	"offline": StateOffline,
-	"device":  StateOnline,
 }
 
 type deviceWatcherImpl struct {
@@ -218,10 +199,8 @@ func parseDeviceStates(msg string) (states map[string]DeviceState, err error) {
 		}
 
 		serial, stateString := fields[0], fields[1]
-		state, ok := deviceStateStrings[stateString]
-		if !ok {
-			err = util.Errorf(util.ParseError, "invalid device state: %s", state)
-		}
+		var state DeviceState
+		state, err = parseDeviceState(stateString)
 		states[serial] = state
 	}
 

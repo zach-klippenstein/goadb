@@ -46,10 +46,10 @@ func (c *Device) DevicePath() (string, error) {
 	return attr, wrapClientError(err, c, "DevicePath")
 }
 
-// State returns the connection state of the device (e.g. "device").
-func (c *Device) State() (string, error) {
+func (c *Device) State() (DeviceState, error) {
 	attr, err := c.getAttribute("get-state")
-	return attr, wrapClientError(err, c, "State")
+	state, err := parseDeviceState(attr)
+	return state, wrapClientError(err, c, "State")
 }
 
 func (c *Device) DeviceInfo() (*DeviceInfo, error) {
