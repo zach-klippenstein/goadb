@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -72,7 +72,7 @@ func (c *Device) DeviceInfo() (*DeviceInfo, error) {
 		}
 	}
 
-	err = util.Errorf(util.DeviceNotFound, "device list doesn't contain serial %s", serial)
+	err = errors.Errorf(errors.DeviceNotFound, "device list doesn't contain serial %s", serial)
 	return nil, wrapClientError(err, c, "DeviceInfo")
 }
 
@@ -224,7 +224,7 @@ func (c *Device) dialDevice() (*wire.Conn, error) {
 	req := fmt.Sprintf("host:%s", c.descriptor.getTransportDescriptor())
 	if err = wire.SendMessageString(conn, req); err != nil {
 		conn.Close()
-		return nil, util.WrapErrf(err, "error connecting to device '%s'", c.descriptor)
+		return nil, errors.WrapErrf(err, "error connecting to device '%s'", c.descriptor)
 	}
 
 	if _, err = conn.ReadStatus(req); err != nil {
@@ -239,12 +239,12 @@ func (c *Device) dialDevice() (*wire.Conn, error) {
 // arguments if required, and joins them into a valid adb command string.
 func prepareCommandLine(cmd string, args ...string) (string, error) {
 	if isBlank(cmd) {
-		return "", util.AssertionErrorf("command cannot be empty")
+		return "", errors.AssertionErrorf("command cannot be empty")
 	}
 
 	for i, arg := range args {
 		if strings.ContainsRune(arg, '"') {
-			return "", util.Errorf(util.ParseError, "arg at index %d contains an invalid double quote: %s", i, arg)
+			return "", errors.Errorf(errors.ParseError, "arg at index %d contains an invalid double quote: %s", i, arg)
 		}
 		if containsWhitespace(arg) {
 			args[i] = fmt.Sprintf("\"%s\"", arg)

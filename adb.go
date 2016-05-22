@@ -3,7 +3,7 @@ package adb
 import (
 	"strconv"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -137,7 +137,7 @@ func (c *Adb) parseServerVersion(versionRaw []byte) (int, error) {
 	versionStr := string(versionRaw)
 	version, err := strconv.ParseInt(versionStr, 16, 32)
 	if err != nil {
-		return 0, util.WrapErrorf(err, util.ParseError,
+		return 0, errors.WrapErrorf(err, errors.ParseError,
 			"error parsing server version: %s", versionStr)
 	}
 	return int(version), nil

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -47,8 +47,8 @@ func TestGetDeviceInfo(t *testing.T) {
 
 	client = newDeviceClientWithDeviceLister("serial", deviceLister)
 	device, err = client.DeviceInfo()
-	assert.True(t, util.HasErrCode(err, util.DeviceNotFound))
-	assert.EqualError(t, err.(*util.Err).Cause,
+	assert.True(t, HasErrCode(err, DeviceNotFound))
+	assert.EqualError(t, err.(*errors.Err).Cause,
 		"DeviceNotFound: device list doesn't contain serial serial")
 	assert.Nil(t, device)
 }
@@ -84,13 +84,13 @@ func TestPrepareCommandLineNoArgs(t *testing.T) {
 
 func TestPrepareCommandLineEmptyCommand(t *testing.T) {
 	_, err := prepareCommandLine("")
-	assert.Equal(t, util.AssertionError, code(err))
+	assert.Equal(t, errors.AssertionError, code(err))
 	assert.Equal(t, "command cannot be empty", message(err))
 }
 
 func TestPrepareCommandLineBlankCommand(t *testing.T) {
 	_, err := prepareCommandLine("  ")
-	assert.Equal(t, util.AssertionError, code(err))
+	assert.Equal(t, errors.AssertionError, code(err))
 	assert.Equal(t, "command cannot be empty", message(err))
 }
 
@@ -108,14 +108,14 @@ func TestPrepareCommandLineArgWithWhitespaceQuotes(t *testing.T) {
 
 func TestPrepareCommandLineArgWithDoubleQuoteFails(t *testing.T) {
 	_, err := prepareCommandLine("cmd", "quoted\"arg")
-	assert.Equal(t, util.ParseError, code(err))
+	assert.Equal(t, errors.ParseError, code(err))
 	assert.Equal(t, "arg at index 0 contains an invalid double quote: quoted\"arg", message(err))
 }
 
-func code(err error) util.ErrCode {
-	return err.(*util.Err).Code
+func code(err error) errors.ErrCode {
+	return err.(*errors.Err).Code
 }
 
 func message(err error) string {
-	return err.(*util.Err).Message
+	return err.(*errors.Err).Message
 }

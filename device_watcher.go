@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -124,7 +124,7 @@ func publishDevices(watcher *deviceWatcherImpl) {
 			return
 		}
 
-		if util.HasErrCode(err, util.ConnectionResetError) {
+		if HasErrCode(err, ConnectionResetError) {
 			// The server died, restart and reconnect.
 
 			// Delay by a random [0ms, 500ms) in case multiple DeviceWatchers are trying to
@@ -194,7 +194,7 @@ func parseDeviceStates(msg string) (states map[string]DeviceState, err error) {
 
 		fields := strings.Split(line, "\t")
 		if len(fields) != 2 {
-			err = util.Errorf(util.ParseError, "invalid device state line %d: %s", lineNum, line)
+			err = errors.Errorf(errors.ParseError, "invalid device state line %d: %s", lineNum, line)
 			return
 		}
 

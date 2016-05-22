@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 )
 
 // TODO(zach): All EOF errors returned from networoking calls should use ConnectionResetError.
@@ -28,7 +28,7 @@ func isFailureStatus(status string) bool {
 type StatusReader interface {
 	// Reads a 4-byte status string and returns it.
 	// If the status string is StatusFailure, reads the error message from the server
-	// and returns it as an util.AdbError.
+	// and returns it as an AdbError.
 	ReadStatus(req string) (string, error)
 }
 
@@ -72,7 +72,7 @@ func (s *realScanner) ReadMessage() ([]byte, error) {
 func (s *realScanner) ReadUntilEof() ([]byte, error) {
 	data, err := ioutil.ReadAll(s.reader)
 	if err != nil {
-		return nil, util.WrapErrorf(err, util.NetworkError, "error reading until EOF")
+		return nil, errors.WrapErrorf(err, errors.NetworkError, "error reading until EOF")
 	}
 	return data, nil
 }
@@ -82,7 +82,7 @@ func (s *realScanner) NewSyncScanner() SyncScanner {
 }
 
 func (s *realScanner) Close() error {
-	return util.WrapErrorf(s.reader.Close(), util.NetworkError, "error closing scanner")
+	return errors.WrapErrorf(s.reader.Close(), errors.NetworkError, "error closing scanner")
 }
 
 var _ Scanner = &realScanner{}
@@ -98,13 +98,13 @@ type lengthReader func(io.Reader) (int, error)
 func readStatusFailureAsError(r io.Reader, req string, messageLengthReader lengthReader) (string, error) {
 	status, err := readOctetString(req, r)
 	if err != nil {
-		return "", util.WrapErrorf(err, util.NetworkError, "error reading status for %s", req)
+		return "", errors.WrapErrorf(err, errors.NetworkError, "error reading status for %s", req)
 	}
 
 	if isFailureStatus(status) {
 		msg, err := readMessage(r, messageLengthReader)
 		if err != nil {
-			return "", util.WrapErrorf(err, util.NetworkError,
+			return "", errors.WrapErrorf(err, errors.NetworkError,
 				"server returned error for %s, but couldn't read the error message", req)
 		}
 
@@ -121,7 +121,7 @@ func readOctetString(description string, r io.Reader) (string, error) {
 	if err == io.ErrUnexpectedEOF {
 		return "", errIncompleteMessage(description, n, 4)
 	} else if err != nil {
-		return "", util.WrapErrorf(err, util.NetworkError, "error reading "+description)
+		return "", errors.WrapErrorf(err, errors.NetworkError, "error reading "+description)
 	}
 
 	return string(octet), nil
@@ -143,7 +143,7 @@ func readMessage(r io.Reader, lengthReader lengthReader) ([]byte, error) {
 	n, err := io.ReadFull(r, data)
 
 	if err != nil && err != io.ErrUnexpectedEOF {
-		return data, util.WrapErrorf(err, util.NetworkError, "error reading message data")
+		return data, errors.WrapErrorf(err, errors.NetworkError, "error reading message data")
 	} else if err == io.ErrUnexpectedEOF {
 		return data, errIncompleteMessage("message data", n, length)
 	}
@@ -160,7 +160,7 @@ func readHexLength(r io.Reader) (int, error) {
 
 	length, err := strconv.ParseInt(string(lengthHex), 16, 64)
 	if err != nil {
-		return 0, util.WrapErrorf(err, util.NetworkError, "could not parse hex length %v", lengthHex)
+		return 0, errors.WrapErrorf(err, errors.NetworkError, "could not parse hex length %v", lengthHex)
 	}
 
 	// Clip the length to 255, as per the Google implementation.

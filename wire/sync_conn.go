@@ -1,6 +1,6 @@
 package wire
 
-import "github.com/zach-klippenstein/goadb/util"
+import "github.com/zach-klippenstein/goadb/internal/errors"
 
 const (
 	// Chunks cannot be longer than 64k.
@@ -32,6 +32,6 @@ type SyncConn struct {
 
 // Close closes both the sender and the scanner, and returns any errors.
 func (c SyncConn) Close() error {
-	return util.CombineErrs("error closing SyncConn", util.NetworkError,
+	return errors.CombineErrs("error closing SyncConn", errors.NetworkError,
 		c.SyncScanner.Close(), c.SyncSender.Close())
 }
