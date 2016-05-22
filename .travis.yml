@@ -5,5 +5,7 @@ go:
   - tip
 
 install:
- # Needed for tip (394ac81)
-  - go get -t -v ./...
+  - make get-deps
+
+script:
+  - make test
