@@ -59,7 +59,7 @@ var deviceStateStrings = map[string]DeviceState{
 }
 
 type deviceWatcherImpl struct {
-	server Server
+	server server
 
 	// If an error occurs, it is stored here and eventChan is close immediately after.
 	err atomic.Value
@@ -67,7 +67,7 @@ type deviceWatcherImpl struct {
 	eventChan chan DeviceStateChangedEvent
 }
 
-func NewDeviceWatcher(server Server) *DeviceWatcher {
+func newDeviceWatcher(server server) *DeviceWatcher {
 	watcher := &DeviceWatcher{&deviceWatcherImpl{
 		server:    server,
 		eventChan: make(chan DeviceStateChangedEvent),
@@ -165,7 +165,7 @@ func publishDevices(watcher *deviceWatcherImpl) {
 	}
 }
 
-func connectToTrackDevices(server Server) (wire.Scanner, error) {
+func connectToTrackDevices(server server) (wire.Scanner, error) {
 	conn, err := server.Dial()
 	if err != nil {
 		return nil, err

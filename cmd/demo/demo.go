@@ -15,25 +15,23 @@ import (
 var (
 	port = flag.Int("p", adb.AdbPort, "")
 
-	server adb.Server
+	client *adb.Adb
 )
 
 func main() {
 	flag.Parse()
 
 	var err error
-	server, err = adb.NewServer(adb.ServerConfig{
+	client, err = adb.NewWithConfig(adb.ServerConfig{
 		Port: *port,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Starting server…")
-	server.Start()
+	client.StartServer()
 
-	client := adb.NewHostClient(server)
-
-	serverVersion, err := client.GetServerVersion()
+	serverVersion, err := client.ServerVersion()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +60,7 @@ func main() {
 
 	fmt.Println()
 	fmt.Println("Watching for device state changes.")
-	watcher := adb.NewDeviceWatcher(server)
+	watcher := client.NewDeviceWatcher()
 	for event := range watcher.C() {
 		fmt.Printf("\t[%s]%+v\n", time.Now(), event)
 	}
@@ -88,22 +86,22 @@ func printErr(err error) {
 }
 
 func PrintDeviceInfoAndError(descriptor adb.DeviceDescriptor) {
-	device := adb.NewDeviceClient(server, descriptor)
+	device := client.Device(descriptor)
 	if err := PrintDeviceInfo(device); err != nil {
 		log.Println(err)
 	}
 }
 
-func PrintDeviceInfo(device *adb.DeviceClient) error {
-	serialNo, err := device.GetSerial()
+func PrintDeviceInfo(device *adb.Device) error {
+	serialNo, err := device.Serial()
 	if err != nil {
 		return err
 	}
-	devPath, err := device.GetDevicePath()
+	devPath, err := device.DevicePath()
 	if err != nil {
 		return err
 	}
-	state, err := device.GetState()
+	state, err := device.State()
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,7 @@ type MockServer struct {
 	Trace []string
 }
 
-var _ Server = &MockServer{}
+var _ server = &MockServer{}
 
 func (s *MockServer) Dial() (*wire.Conn, error) {
 	s.logMethod("Dial")

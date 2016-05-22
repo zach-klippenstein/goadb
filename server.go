@@ -30,15 +30,17 @@ type ServerConfig struct {
 
 	// Dialer used to connect to the adb server.
 	Dialer
+
+	fs *filesystem
 }
 
 // Server knows how to start the adb server and connect to it.
-type Server interface {
+type server interface {
 	Start() error
 	Dial() (*wire.Conn, error)
 }
 
-func roundTripSingleResponse(s Server, req string) ([]byte, error) {
+func roundTripSingleResponse(s server, req string) ([]byte, error) {
 	conn, err := s.Dial()
 	if err != nil {
 		return nil, err
@@ -50,18 +52,12 @@ func roundTripSingleResponse(s Server, req string) ([]byte, error) {
 
 type realServer struct {
 	config ServerConfig
-	fs     *filesystem
 
 	// Caches Host:Port so they don't have to be concatenated for every dial.
 	address string
 }
 
-// NewServer creates a new Server instance.
-func NewServer(config ServerConfig) (Server, error) {
-	return newServer(config, localFilesystem)
-}
-
-func newServer(config ServerConfig, fs *filesystem) (Server, error) {
+func newServer(config ServerConfig) (server, error) {
 	if config.Dialer == nil {
 		config.Dialer = tcpDialer{}
 	}
@@ -73,20 +69,23 @@ func newServer(config ServerConfig, fs *filesystem) (Server, error) {
 		config.Port = AdbPort
 	}
 
+	if config.fs == nil {
+		config.fs = localFilesystem
+	}
+
 	if config.PathToAdb == "" {
-		path, err := fs.LookPath(AdbExecutableName)
+		path, err := config.fs.LookPath(AdbExecutableName)
 		if err != nil {
 			return nil, util.WrapErrorf(err, util.ServerNotAvailable, "could not find %s in PATH", AdbExecutableName)
 		}
 		config.PathToAdb = path
 	}
-	if err := fs.IsExecutableFile(config.PathToAdb); err != nil {
+	if err := config.fs.IsExecutableFile(config.PathToAdb); err != nil {
 		return nil, util.WrapErrorf(err, util.ServerNotAvailable, "invalid adb executable: %s", config.PathToAdb)
 	}
 
 	return &realServer{
 		config:  config,
-		fs:      fs,
 		address: fmt.Sprintf("%s:%d", config.Host, config.Port),
 	}, nil
 }
@@ -111,7 +110,7 @@ func (s *realServer) Dial() (*wire.Conn, error) {
 
 // StartServer ensures there is a server running.
 func (s *realServer) Start() error {
-	output, err := s.fs.CmdCombinedOutput(s.config.PathToAdb, "start-server")
+	output, err := s.config.fs.CmdCombinedOutput(s.config.PathToAdb, "start-server")
 	outputStr := strings.TrimSpace(string(output))
 	return util.WrapErrorf(err, util.ServerNotAvailable, "error starting server: %s\noutput:\n%s", err, outputStr)
 }

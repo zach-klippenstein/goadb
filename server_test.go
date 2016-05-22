@@ -9,8 +9,7 @@ import (
 )
 
 func TestNewServer_ZeroConfig(t *testing.T) {
-	config := ServerConfig{}
-	fs := &filesystem{
+	config := ServerConfig{fs: &filesystem{
 		LookPath: func(name string) (string, error) {
 			if name == AdbExecutableName {
 				return "/bin/adb", nil
@@ -23,9 +22,9 @@ func TestNewServer_ZeroConfig(t *testing.T) {
 			}
 			return fmt.Errorf("wrong path: %s", path)
 		},
-	}
+	}}
 
-	serverIf, err := newServer(config, fs)
+	serverIf, err := newServer(config)
 	server := serverIf.(*realServer)
 	assert.NoError(t, err)
 	assert.IsType(t, tcpDialer{}, server.config.Dialer)
@@ -47,17 +46,17 @@ func TestNewServer_CustomConfig(t *testing.T) {
 		Host:      "foobar",
 		Port:      1,
 		PathToAdb: "/bin/adb",
-	}
-	fs := &filesystem{
-		IsExecutableFile: func(path string) error {
-			if path == "/bin/adb" {
-				return nil
-			}
-			return fmt.Errorf("wrong path: %s", path)
+		fs: &filesystem{
+			IsExecutableFile: func(path string) error {
+				if path == "/bin/adb" {
+					return nil
+				}
+				return fmt.Errorf("wrong path: %s", path)
+			},
 		},
 	}
 
-	serverIf, err := newServer(config, fs)
+	serverIf, err := newServer(config)
 	server := serverIf.(*realServer)
 	assert.NoError(t, err)
 	assert.IsType(t, MockDialer{}, server.config.Dialer)
@@ -68,13 +67,12 @@ func TestNewServer_CustomConfig(t *testing.T) {
 }
 
 func TestNewServer_AdbNotFound(t *testing.T) {
-	config := ServerConfig{}
-	fs := &filesystem{
+	config := ServerConfig{fs: &filesystem{
 		LookPath: func(name string) (string, error) {
 			return "", fmt.Errorf("executable not found: %s", name)
 		},
-	}
+	}}
 
-	_, err := newServer(config, fs)
+	_, err := newServer(config)
 	assert.EqualError(t, err, "ServerNotAvailable: could not find adb in PATH")
 }
