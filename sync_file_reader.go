@@ -3,7 +3,7 @@ package adb
 import (
 	"io"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -85,7 +85,7 @@ func readNextChunk(r wire.SyncScanner) (io.Reader, error) {
 	status, err := r.ReadStatus("read-chunk")
 	if err != nil {
 		if wire.IsAdbServerErrorMatching(err, readFileNotFoundPredicate) {
-			return nil, util.Errorf(util.FileNoExistError, "no such file or directory")
+			return nil, errors.Errorf(errors.FileNoExistError, "no such file or directory")
 		}
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func readNextChunk(r wire.SyncScanner) (io.Reader, error) {
 	case wire.StatusSyncDone:
 		return nil, io.EOF
 	default:
-		return nil, util.Errorf(util.AssertionError, "expected chunk id '%s' or '%s', but got '%s'",
+		return nil, errors.Errorf(errors.AssertionError, "expected chunk id '%s' or '%s', but got '%s'",
 			wire.StatusSyncData, wire.StatusSyncDone, []byte(status))
 	}
 }

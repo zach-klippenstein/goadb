@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 )
 
 type SyncScanner interface {
@@ -39,13 +39,13 @@ func (s *realSyncScanner) ReadStatus(req string) (string, error) {
 
 func (s *realSyncScanner) ReadInt32() (int32, error) {
 	value, err := readInt32(s.Reader)
-	return int32(value), util.WrapErrorf(err, util.NetworkError, "error reading int from sync scanner")
+	return int32(value), errors.WrapErrorf(err, errors.NetworkError, "error reading int from sync scanner")
 }
 func (s *realSyncScanner) ReadFileMode() (os.FileMode, error) {
 	var value uint32
 	err := binary.Read(s.Reader, binary.LittleEndian, &value)
 	if err != nil {
-		return 0, util.WrapErrorf(err, util.NetworkError, "error reading filemode from sync scanner")
+		return 0, errors.WrapErrorf(err, errors.NetworkError, "error reading filemode from sync scanner")
 	}
 	return ParseFileModeFromAdb(value), nil
 
@@ -53,7 +53,7 @@ func (s *realSyncScanner) ReadFileMode() (os.FileMode, error) {
 func (s *realSyncScanner) ReadTime() (time.Time, error) {
 	seconds, err := s.ReadInt32()
 	if err != nil {
-		return time.Time{}, util.WrapErrorf(err, util.NetworkError, "error reading time from sync scanner")
+		return time.Time{}, errors.WrapErrorf(err, errors.NetworkError, "error reading time from sync scanner")
 	}
 
 	return time.Unix(int64(seconds), 0).UTC(), nil
@@ -62,13 +62,13 @@ func (s *realSyncScanner) ReadTime() (time.Time, error) {
 func (s *realSyncScanner) ReadString() (string, error) {
 	length, err := s.ReadInt32()
 	if err != nil {
-		return "", util.WrapErrorf(err, util.NetworkError, "error reading length from sync scanner")
+		return "", errors.WrapErrorf(err, errors.NetworkError, "error reading length from sync scanner")
 	}
 
 	bytes := make([]byte, length)
 	n, rawErr := io.ReadFull(s.Reader, bytes)
 	if rawErr != nil && rawErr != io.ErrUnexpectedEOF {
-		return "", util.WrapErrorf(rawErr, util.NetworkError, "error reading string from sync scanner")
+		return "", errors.WrapErrorf(rawErr, errors.NetworkError, "error reading string from sync scanner")
 	} else if rawErr == io.ErrUnexpectedEOF {
 		return "", errIncompleteMessage("bytes", n, int(length))
 	}
@@ -78,7 +78,7 @@ func (s *realSyncScanner) ReadString() (string, error) {
 func (s *realSyncScanner) ReadBytes() (io.Reader, error) {
 	length, err := s.ReadInt32()
 	if err != nil {
-		return nil, util.WrapErrorf(err, util.NetworkError, "error reading bytes from sync scanner")
+		return nil, errors.WrapErrorf(err, errors.NetworkError, "error reading bytes from sync scanner")
 	}
 
 	return io.LimitReader(s.Reader, int64(length)), nil
@@ -86,7 +86,7 @@ func (s *realSyncScanner) ReadBytes() (io.Reader, error) {
 
 func (s *realSyncScanner) Close() error {
 	if closer, ok := s.Reader.(io.Closer); ok {
-		return util.WrapErrorf(closer.Close(), util.NetworkError, "error closing sync scanner")
+		return errors.WrapErrorf(closer.Close(), errors.NetworkError, "error closing sync scanner")
 	}
 	return nil
 }

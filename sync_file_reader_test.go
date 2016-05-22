@@ -2,13 +2,12 @@ package adb
 
 import (
 	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zach-klippenstein/goadb/util"
 	"github.com/zach-klippenstein/goadb/wire"
-	"io/ioutil"
 )
 
 func TestReadNextChunk(t *testing.T) {
@@ -110,6 +109,6 @@ func TestReadErrorNotFound(t *testing.T) {
 	s := wire.NewSyncScanner(strings.NewReader(
 		"FAIL\031\000\000\000No such file or directory"))
 	_, err := newSyncFileReader(s)
-	assert.True(t, util.HasErrCode(err, util.FileNoExistError))
+	assert.True(t, HasErrCode(err, FileNoExistError))
 	assert.EqualError(t, err, "FileNoExistError: no such file or directory")
 }

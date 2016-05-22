@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -57,5 +57,5 @@ func TestStatNoExist(t *testing.T) {
 
 	entry, err := stat(conn, "/")
 	assert.Nil(t, entry)
-	assert.Equal(t, util.FileNoExistError, err.(*util.Err).Code)
+	assert.Equal(t, errors.FileNoExistError, err.(*errors.Err).Code)
 }

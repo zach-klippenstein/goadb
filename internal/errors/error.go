@@ -1,4 +1,4 @@
-package util
+package errors
 
 import (
 	"bytes"
@@ -31,6 +31,7 @@ type Err struct {
 
 var _ error = &Err{}
 
+// Keep this in sync with ../error.go.
 //go:generate stringer -type=ErrCode
 type ErrCode byte
 

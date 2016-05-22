@@ -9,7 +9,7 @@ import (
 	"time"
 
 	adb "github.com/zach-klippenstein/goadb"
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 )
 
 var (
@@ -74,7 +74,7 @@ func main() {
 
 func printErr(err error) {
 	switch err := err.(type) {
-	case *util.Err:
+	case *errors.Err:
 		fmt.Println(err.Error())
 		if err.Cause != nil {
 			fmt.Print("caused by ")

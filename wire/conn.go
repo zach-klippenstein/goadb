@@ -1,6 +1,6 @@
 package wire
 
-import "github.com/zach-klippenstein/goadb/util"
+import "github.com/zach-klippenstein/goadb/internal/errors"
 
 const (
 	// The official implementation of adb imposes an undocumented 255-byte limit
@@ -72,8 +72,8 @@ func (conn *Conn) Close() error {
 	}
 
 	if errs.ScannerErr != nil || errs.SenderErr != nil {
-		return &util.Err{
-			Code:    util.NetworkError,
+		return &errors.Err{
+			Code:    errors.NetworkError,
 			Message: "error closing connection",
 			Details: errs,
 		}

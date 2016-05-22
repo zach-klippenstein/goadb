@@ -1,13 +1,13 @@
 package adb
 
 import (
-	"errors"
+	stderrors "errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 	"golang.org/x/sys/unix"
 )
@@ -76,12 +76,12 @@ func newServer(config ServerConfig) (server, error) {
 	if config.PathToAdb == "" {
 		path, err := config.fs.LookPath(AdbExecutableName)
 		if err != nil {
-			return nil, util.WrapErrorf(err, util.ServerNotAvailable, "could not find %s in PATH", AdbExecutableName)
+			return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "could not find %s in PATH", AdbExecutableName)
 		}
 		config.PathToAdb = path
 	}
 	if err := config.fs.IsExecutableFile(config.PathToAdb); err != nil {
-		return nil, util.WrapErrorf(err, util.ServerNotAvailable, "invalid adb executable: %s", config.PathToAdb)
+		return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "invalid adb executable: %s", config.PathToAdb)
 	}
 
 	return &realServer{
@@ -97,7 +97,7 @@ func (s *realServer) Dial() (*wire.Conn, error) {
 	if err != nil {
 		// Attempt to start the server and try again.
 		if err = s.Start(); err != nil {
-			return nil, util.WrapErrorf(err, util.ServerNotAvailable, "error starting server for dial")
+			return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "error starting server for dial")
 		}
 
 		conn, err = s.config.Dial(s.address)
@@ -112,7 +112,7 @@ func (s *realServer) Dial() (*wire.Conn, error) {
 func (s *realServer) Start() error {
 	output, err := s.config.fs.CmdCombinedOutput(s.config.PathToAdb, "start-server")
 	outputStr := strings.TrimSpace(string(output))
-	return util.WrapErrorf(err, util.ServerNotAvailable, "error starting server: %s\noutput:\n%s", err, outputStr)
+	return errors.WrapErrorf(err, errors.ServerNotAvailable, "error starting server: %s\noutput:\n%s", err, outputStr)
 }
 
 // filesystem abstracts interactions with the local filesystem for testability.
@@ -135,7 +135,7 @@ var localFilesystem = &filesystem{
 			return err
 		}
 		if !info.Mode().IsRegular() {
-			return errors.New("not a regular file")
+			return stderrors.New("not a regular file")
 		}
 		return unix.Access(path, unix.X_OK)
 	},

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 )
 
 func TestReadStatusOkay(t *testing.T) {
@@ -23,7 +23,7 @@ func TestReadIncompleteStatus(t *testing.T) {
 	s := newEofReader("oka")
 	_, err := readStatusFailureAsError(s, "", readHexLength)
 	assert.EqualError(t, err, "NetworkError: error reading status for ")
-	assert.Equal(t, errIncompleteMessage("", 3, 4), err.(*util.Err).Cause)
+	assert.Equal(t, errIncompleteMessage("", 3, 4), err.(*errors.Err).Cause)
 	assertEof(t, s)
 }
 
@@ -31,7 +31,7 @@ func TestReadFailureIncompleteStatus(t *testing.T) {
 	s := newEofReader("FAIL")
 	_, err := readStatusFailureAsError(s, "req", readHexLength)
 	assert.EqualError(t, err, "NetworkError: server returned error for req, but couldn't read the error message")
-	assert.Error(t, err.(*util.Err).Cause)
+	assert.Error(t, err.(*errors.Err).Cause)
 	assertEof(t, s)
 }
 
@@ -39,7 +39,7 @@ func TestReadFailureEmptyStatus(t *testing.T) {
 	s := newEofReader("FAIL0000")
 	_, err := readStatusFailureAsError(s, "", readHexLength)
 	assert.EqualError(t, err, "AdbError: server error:  ({Request: ServerMsg:})")
-	assert.NoError(t, err.(*util.Err).Cause)
+	assert.NoError(t, err.(*errors.Err).Cause)
 	assertEof(t, s)
 }
 
@@ -47,7 +47,7 @@ func TestReadFailureStatus(t *testing.T) {
 	s := newEofReader("FAIL0004fail")
 	_, err := readStatusFailureAsError(s, "", readHexLength)
 	assert.EqualError(t, err, "AdbError: server error: fail ({Request: ServerMsg:fail})")
-	assert.NoError(t, err.(*util.Err).Cause)
+	assert.NoError(t, err.(*errors.Err).Cause)
 	assertEof(t, s)
 }
 
@@ -112,7 +112,7 @@ func TestReadLengthIncompleteLength(t *testing.T) {
 
 func assertEof(t *testing.T, r io.Reader) {
 	msg, err := readMessage(r, readHexLength)
-	assert.True(t, util.HasErrCode(err, util.ConnectionResetError))
+	assert.True(t, errors.HasErrCode(err, errors.ConnectionResetError))
 	assert.Nil(t, msg)
 }
 

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -76,11 +76,11 @@ func (w *syncFileWriter) Close() error {
 	}
 
 	if err := w.sender.SendOctetString(wire.StatusSyncDone); err != nil {
-		return util.WrapErrf(err, "error sending done chunk to close stream")
+		return errors.WrapErrf(err, "error sending done chunk to close stream")
 	}
 	if err := w.sender.SendTime(w.mtime); err != nil {
-		return util.WrapErrf(err, "error writing file modification time")
+		return errors.WrapErrf(err, "error writing file modification time")
 	}
 
-	return util.WrapErrf(w.sender.Close(), "error closing FileWriter")
+	return errors.WrapErrf(w.sender.Close(), "error closing FileWriter")
 }

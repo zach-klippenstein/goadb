@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-
 	"sync"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 )
 
 // ErrorResponseDetails is an error message returned by the server for a particular request.
@@ -17,7 +16,7 @@ type ErrorResponseDetails struct {
 }
 
 // deviceNotFoundMessagePattern matches all possible error messages returned by adb servers to
-// report that a matching device was not found. Used to set the util.DeviceNotFound error code on
+// report that a matching device was not found. Used to set the DeviceNotFound error code on
 // error values.
 //
 // Old servers send "device not found", and newer ones "device 'serial' not found".
@@ -31,12 +30,12 @@ func adbServerError(request string, serverMsg string) error {
 		msg = fmt.Sprintf("server error for %s request: %s", request, serverMsg)
 	}
 
-	errCode := util.AdbError
+	errCode := errors.AdbError
 	if deviceNotFoundMessagePattern.MatchString(serverMsg) {
-		errCode = util.DeviceNotFound
+		errCode = errors.DeviceNotFound
 	}
 
-	return &util.Err{
+	return &errors.Err{
 		Code:    errCode,
 		Message: msg,
 		Details: ErrorResponseDetails{
@@ -46,18 +45,18 @@ func adbServerError(request string, serverMsg string) error {
 	}
 }
 
-// IsAdbServerErrorMatching returns true if err is an *util.Err with code AdbError and for which
+// IsAdbServerErrorMatching returns true if err is an *Err with code AdbError and for which
 // predicate returns true when passed Details.ServerMsg.
 func IsAdbServerErrorMatching(err error, predicate func(string) bool) bool {
-	if err, ok := err.(*util.Err); ok && err.Code == util.AdbError {
+	if err, ok := err.(*errors.Err); ok && err.Code == errors.AdbError {
 		return predicate(err.Details.(ErrorResponseDetails).ServerMsg)
 	}
 	return false
 }
 
 func errIncompleteMessage(description string, actual int, expected int) error {
-	return &util.Err{
-		Code:    util.ConnectionResetError,
+	return &errors.Err{
+		Code:    errors.ConnectionResetError,
 		Message: fmt.Sprintf("incomplete %s: read %d bytes, expecting %d", description, actual, expected),
 		Details: struct {
 			ActualReadBytes int
@@ -76,7 +75,7 @@ func writeFully(w io.Writer, data []byte) error {
 	for offset < len(data) {
 		n, err := w.Write(data[offset:])
 		if err != nil {
-			return util.WrapErrorf(err, util.NetworkError, "error writing %d bytes at offset %d", len(data), offset)
+			return errors.WrapErrorf(err, errors.NetworkError, "error writing %d bytes at offset %d", len(data), offset)
 		}
 		offset += n
 	}

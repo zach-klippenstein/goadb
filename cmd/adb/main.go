@@ -10,7 +10,6 @@ import (
 
 	"github.com/cheggaaa/pb"
 	"github.com/zach-klippenstein/goadb"
-	"github.com/zach-klippenstein/goadb/util"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -162,7 +161,7 @@ func pull(showProgress bool, remotePath, localPath string, device adb.DeviceDesc
 	client := client.Device(device)
 
 	info, err := client.Stat(remotePath)
-	if util.HasErrCode(err, util.FileNoExistError) {
+	if adb.HasErrCode(err, adb.ErrCode(adb.FileNoExistError)) {
 		fmt.Fprintln(os.Stderr, "remote file does not exist:", remotePath)
 		return 1
 	} else if err != nil {
@@ -172,7 +171,7 @@ func pull(showProgress bool, remotePath, localPath string, device adb.DeviceDesc
 
 	remoteFile, err := client.OpenRead(remotePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, util.ErrorWithCauseChain(err))
+		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, adb.ErrorWithCauseChain(err))
 		return 1
 	}
 	defer remoteFile.Close()

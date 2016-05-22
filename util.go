@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 )
 
 var (
@@ -25,14 +25,14 @@ func wrapClientError(err error, client interface{}, operation string, args ...in
 	if err == nil {
 		return nil
 	}
-	if _, ok := err.(*util.Err); !ok {
-		panic("err is not a *util.Err: " + err.Error())
+	if _, ok := err.(*errors.Err); !ok {
+		panic("err is not a *Err: " + err.Error())
 	}
 
 	clientType := reflect.TypeOf(client)
 
-	return &util.Err{
-		Code:    err.(*util.Err).Code,
+	return &errors.Err{
+		Code:    err.(*errors.Err).Code,
 		Cause:   err,
 		Message: fmt.Sprintf("error performing %s on %s", fmt.Sprintf(operation, args...), clientType),
 		Details: client,

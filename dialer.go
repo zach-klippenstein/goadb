@@ -5,7 +5,7 @@ import (
 	"net"
 	"runtime"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -21,7 +21,7 @@ type tcpDialer struct{}
 func (tcpDialer) Dial(address string) (*wire.Conn, error) {
 	netConn, err := net.Dial("tcp", address)
 	if err != nil {
-		return nil, util.WrapErrorf(err, util.ServerNotAvailable, "error dialing %s", address)
+		return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "error dialing %s", address)
 	}
 
 	// net.Conn can't be closed more than once, but wire.Conn will try to close both sender and scanner

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/zach-klippenstein/goadb/util"
+	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
 )
 
@@ -24,7 +24,7 @@ func stat(conn *wire.SyncConn, path string) (*DirEntry, error) {
 		return nil, err
 	}
 	if id != "STAT" {
-		return nil, util.Errorf(util.AssertionError, "expected stat ID 'STAT', but got '%s'", id)
+		return nil, errors.Errorf(errors.AssertionError, "expected stat ID 'STAT', but got '%s'", id)
 	}
 
 	return readStat(conn)
@@ -71,24 +71,24 @@ func sendFile(conn *wire.SyncConn, path string, mode os.FileMode, mtime time.Tim
 func readStat(s wire.SyncScanner) (entry *DirEntry, err error) {
 	mode, err := s.ReadFileMode()
 	if err != nil {
-		err = util.WrapErrf(err, "error reading file mode: %v", err)
+		err = errors.WrapErrf(err, "error reading file mode: %v", err)
 		return
 	}
 	size, err := s.ReadInt32()
 	if err != nil {
-		err = util.WrapErrf(err, "error reading file size: %v", err)
+		err = errors.WrapErrf(err, "error reading file size: %v", err)
 		return
 	}
 	mtime, err := s.ReadTime()
 	if err != nil {
-		err = util.WrapErrf(err, "error reading file time: %v", err)
+		err = errors.WrapErrf(err, "error reading file time: %v", err)
 		return
 	}
 
 	// adb doesn't indicate when a file doesn't exist, but will return all zeros.
 	// Theoretically this could be an actual file, but that's very unlikely.
 	if mode == os.FileMode(0) && size == 0 && mtime == zeroTime {
-		return nil, util.Errorf(util.FileNoExistError, "file doesn't exist")
+		return nil, errors.Errorf(errors.FileNoExistError, "file doesn't exist")
 	}
 
 	entry = &DirEntry{
