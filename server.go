@@ -136,7 +136,7 @@ var localFilesystem = &filesystem{
 		if !info.Mode().IsRegular() {
 			return stderrors.New("not a regular file")
 		}
-		return Access(path)
+		return isExecutable(path)
 	},
 	CmdCombinedOutput: func(name string, arg ...string) ([]byte, error) {
 		return exec.Command(name, arg...).CombinedOutput()

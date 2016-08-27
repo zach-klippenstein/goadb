@@ -4,6 +4,6 @@ package adb
 
 import "golang.org/x/sys/unix"
 
-func access(path string) error {
+func isExecutableOnPlatform(path string) error {
 	return unix.Access(path, unix.X_OK)
 }

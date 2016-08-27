@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-func access(path string) error {
-	if strings.Contains(path, ".exe") {
+func isExecutableOnPlatform(path string) error {
+	if strings.HasSuffix(path, ".exe") || strings.HasSuffix(path, ".cmd") ||
+		strings.HasSuffix(path, ".bat") {
 		return nil
 	}
 	return errors.New("not an executable")
