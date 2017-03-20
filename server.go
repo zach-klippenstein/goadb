@@ -9,7 +9,6 @@ import (
 
 	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -137,7 +136,7 @@ var localFilesystem = &filesystem{
 		if !info.Mode().IsRegular() {
 			return stderrors.New("not a regular file")
 		}
-		return unix.Access(path, unix.X_OK)
+		return isExecutable(path)
 	},
 	CmdCombinedOutput: func(name string, arg ...string) ([]byte, error) {
 		return exec.Command(name, arg...).CombinedOutput()
