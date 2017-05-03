@@ -9,7 +9,7 @@ import (
 
 	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
-)
+)https://github.com/zach-klippenstein/goadb/blob/master/server.go
 
 const (
 	AdbExecutableName = "adb"
@@ -109,7 +109,7 @@ func (s *realServer) Dial() (*wire.Conn, error) {
 
 // StartServer ensures there is a server running.
 func (s *realServer) Start() error {
-	output, err := s.config.fs.CmdCombinedOutput(s.config.PathToAdb, "start-server")
+	output, err := s.config.fs.CmdCombinedOutput(s.config.PathToAdb, "-L", fmt.Sprintf("tcp:%s", s.address), "start-server")
 	outputStr := strings.TrimSpace(string(output))
 	return errors.WrapErrorf(err, errors.ServerNotAvailable, "error starting server: %s\noutput:\n%s", err, outputStr)
 }
