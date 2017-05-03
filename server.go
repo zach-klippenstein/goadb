@@ -9,7 +9,7 @@ import (
 
 	"github.com/zach-klippenstein/goadb/internal/errors"
 	"github.com/zach-klippenstein/goadb/wire"
-)https://github.com/zach-klippenstein/goadb/blob/master/server.go
+)
 
 const (
 	AdbExecutableName = "adb"
