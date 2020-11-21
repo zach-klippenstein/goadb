@@ -66,10 +66,6 @@ func parseDeviceShort(line string) (*DeviceInfo, error) {
 
 func parseDeviceLong(line string) (*DeviceInfo, error) {
 	fields := strings.Fields(line)
-	if len(fields) < 5 {
-		return nil, errors.Errorf(errors.ParseError,
-			"malformed device line, expected at least 5 fields but found %d", len(fields))
-	}
 
 	attrs := parseDeviceAttributes(fields[2:])
 	return newDevice(fields[0], attrs)

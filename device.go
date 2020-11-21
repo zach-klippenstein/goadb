@@ -48,6 +48,12 @@ func (c *Device) DevicePath() (string, error) {
 
 func (c *Device) State() (DeviceState, error) {
 	attr, err := c.getAttribute("get-state")
+	if err != nil {
+		if strings.Contains(err.Error(), "unauthorized") {
+			return StateUnauthorized, nil
+		}
+		return StateInvalid, wrapClientError(err, c, "State")
+	}
 	state, err := parseDeviceState(attr)
 	return state, wrapClientError(err, c, "State")
 }

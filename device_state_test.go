@@ -17,6 +17,7 @@ func TestParseDeviceState(t *testing.T) {
 		{"", StateDisconnected, "StateDisconnected", nil},
 		{"offline", StateOffline, "StateOffline", nil},
 		{"device", StateOnline, "StateOnline", nil},
+		{"unauthorized", StateUnauthorized, "StateUnauthorized", nil},
 		{"bad", StateInvalid, "StateInvalid", errors.New(`ParseError: invalid device state: "StateInvalid"`)},
 	} {
 		state, err := parseDeviceState(test.String)
