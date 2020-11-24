@@ -29,7 +29,7 @@ func SendMessageString(s Sender, msg string) error {
 }
 
 func (s *realSender) SendMessage(msg []byte) error {
-	if len(msg) > MaxMessageLength {
+	if len(msg) > MaxMessageLength - 4 {
 		return errors.AssertionErrorf("message length exceeds maximum: %d", len(msg))
 	}
 
