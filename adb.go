@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/zach-klippenstein/goadb/internal/errors"
@@ -131,6 +132,20 @@ func (c *Adb) ListDevices() ([]*DeviceInfo, error) {
 		return nil, wrapClientError(err, c, "ListDevices")
 	}
 	return devices, nil
+}
+
+/*
+Connect connect to a device via TCP/IP
+
+Corresponds to the command:
+	adb connect
+*/
+func (c *Adb) Connect(host string, port int) error {
+	_, err := roundTripSingleResponse(c.server, fmt.Sprintf("host:connect:%s:%d", host, port))
+	if err != nil {
+		return wrapClientError(err, c, "Connect")
+	}
+	return nil
 }
 
 func (c *Adb) parseServerVersion(versionRaw []byte) (int, error) {
