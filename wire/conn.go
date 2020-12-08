@@ -3,9 +3,9 @@ package wire
 import "github.com/zach-klippenstein/goadb/internal/errors"
 
 const (
-	// The official implementation of adb imposes an undocumented 255-byte limit
-	// on messages.
-	MaxMessageLength = 1024 * 1024
+	// The official implementation of adb imposes an undocumented 1-megabyte limit
+	// on payload size.
+	MaxPayloadSize = 1024 * 1024
 )
 
 /*
