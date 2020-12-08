@@ -83,7 +83,7 @@ func (w *DeviceWatcher) Err() error {
 // Shutdown stops the watcher from listening for events and closes the channel returned
 // from C.
 func (w *DeviceWatcher) Shutdown() {
-	// TODO(z): Implement.
+	close(w.eventChan)
 }
 
 func (w *deviceWatcherImpl) reportErr(err error) {
