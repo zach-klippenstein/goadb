@@ -1,0 +1,26 @@
+#
+# Build configuration for Circle CI
+#
+
+machine:
+  environment:
+    GO15VENDOREXPERIMENT: 1
+    ANDROID_HOME: /usr/local/android-sdk-linux
+
+dependencies:
+  post:
+    - go get -u github.com/jstemmer/go-junit-report
+
+test:
+  pre:
+    - go version
+    - emulator -avd circleci-android23 -no-audio -no-window:
+        background: true
+        parallel: true
+    - circle-android wait-for-boot
+
+  override:
+    # Circle requires test results to be in JUnit's XML format.
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit
+    - go test -v ./internal/integrationtests/... | go-junit-report > $CIRCLE_TEST_REPORTS/junit/test-results.xml:
+        timeout: 600
