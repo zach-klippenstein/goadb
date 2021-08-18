@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
-	"github.com/zach-klippenstein/goadb"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -32,6 +31,10 @@ var (
 	devicesLongFlag = devicesCommand.Flag("long",
 		"Include extra detail about devices.").
 		Short('l').
+		Bool()
+	devicesWatchFlag = devicesCommand.Flag("watch",
+		"Device watch for the online and offline devices").
+		Short('w').
 		Bool()
 
 	pullCommand = kingpin.Command("pull",
@@ -78,7 +81,7 @@ func main() {
 
 	switch kingpin.Parse() {
 	case "devices":
-		exitCode = listDevices(*devicesLongFlag)
+		exitCode = listDevices(*devicesLongFlag, *devicesWatchFlag)
 	case "shell":
 		exitCode = runShellCommand(*shellCommandArg, parseDevice())
 	case "pull":
@@ -98,24 +101,35 @@ func parseDevice() adb.DeviceDescriptor {
 	return adb.AnyDevice()
 }
 
-func listDevices(long bool) int {
+func listDevices(long bool, watch bool) int {
 	//client := adb.New(server)
-	devices, err := client.ListDevices()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-	}
 
-	for _, device := range devices {
-		if long {
-			if device.Usb == "" {
-				fmt.Printf("%s\tproduct:%s model:%s device:%s\n",
-					device.Serial, device.Product, device.Model, device.DeviceInfo)
+	// Listen to the watch flag
+	if watch {
+		watcher := client.NewDeviceWatcher()
+		for event := range watcher.C() {
+			fmt.Printf("%+v\n", event)
+		}
+		if watcher.Err() != nil {
+			fmt.Print(watcher.Err().Error())
+		}
+	} else {
+		devices, err := client.ListDevices()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+		}
+		for _, device := range devices {
+			if long {
+				if device.Usb == "" {
+					fmt.Printf("%s\tproduct:%s model:%s device:%s\n",
+						device.Serial, device.Product, device.Model, device.DeviceInfo)
+				} else {
+					fmt.Printf("%s\tusb:%s product:%s model:%s device:%s\n",
+						device.Serial, device.Usb, device.Product, device.Model, device.DeviceInfo)
+				}
 			} else {
-				fmt.Printf("%s\tusb:%s product:%s model:%s device:%s\n",
-					device.Serial, device.Usb, device.Product, device.Model, device.DeviceInfo)
+				fmt.Println(device.Serial)
 			}
-		} else {
-			fmt.Println(device.Serial)
 		}
 	}
 
