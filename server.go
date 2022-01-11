@@ -27,6 +27,7 @@ type ServerConfig struct {
 	Host string
 	Port int
 
+	NoStart bool
 	// Dialer used to connect to the adb server.
 	Dialer
 
@@ -72,6 +73,13 @@ func newServer(config ServerConfig) (server, error) {
 		config.fs = localFilesystem
 	}
 
+	if config.NoStart {
+		return &realServer{
+			config:  config,
+			address: fmt.Sprintf("%s:%d", config.Host, config.Port),
+		}, nil
+	}
+
 	if config.PathToAdb == "" {
 		path, err := config.fs.LookPath(AdbExecutableName)
 		if err != nil {
@@ -90,10 +98,15 @@ func newServer(config ServerConfig) (server, error) {
 }
 
 // Dial tries to connect to the server. If the first attempt fails, tries starting the server before
-// retrying. If the second attempt fails, returns the error.
+// retrying. If the second attempt fails, returns the error. If NoStart is true in the config
+// the server returns immediatly on a failed Dial.
 func (s *realServer) Dial() (*wire.Conn, error) {
 	conn, err := s.config.Dial(s.address)
 	if err != nil {
+		if s.config.NoStart {
+			return nil, err
+		}
+
 		// Attempt to start the server and try again.
 		if err = s.Start(); err != nil {
 			return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "error starting server for dial")
